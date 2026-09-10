@@ -1,0 +1,21 @@
+---
+import Base from '@/layouts/Base.astro';
+import App from '@/components/App';
+---
+
+<Base>
+  <div id="app-root" class="fixed inset-0">
+    <App client:only="react" />
+    <div id="boot-screen" class="absolute inset-0 z-50 flex items-center justify-center bg-bg" aria-live="polite">
+      <div class="flex flex-col items-center gap-4 animate-fade-in">
+        <div class="relative h-14 w-14">
+          <div class="absolute inset-0 rounded-full border border-accent/40"></div>
+          <div class="absolute inset-3 rounded-full border border-accent/25"></div>
+          <div class="absolute inset-0 animate-radar" style="background: conic-gradient(from 0deg, transparent 0deg, var(--accent-strong) 60deg, transparent 90deg); border-radius: 9999px;"></div>
+          <div class="absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent shadow-glow"></div>
+        </div>
+        <p class="label-caps text-muted">Initialising radar</p>
+      </div>
+    </div>
+  </div>
+</Base>

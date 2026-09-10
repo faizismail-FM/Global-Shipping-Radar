@@ -1,0 +1,330 @@
+@import 'tailwindcss';
+@import 'maplibre-gl/dist/maplibre-gl.css';
+
+/* ------------------------------------------------------------------------ */
+/* Design tokens                                                             */
+/* ------------------------------------------------------------------------ */
+
+:root,
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #070d17;
+  --bg-elevated: #0c1524;
+  --panel: rgba(10, 17, 29, 0.78);
+  --panel-solid: #0d1626;
+  --panel-strong: rgba(10, 17, 29, 0.92);
+  --border: rgba(148, 163, 184, 0.14);
+  --border-strong: rgba(148, 163, 184, 0.28);
+  --text: #e6edf5;
+  --text-muted: #8a9bb3;
+  --text-faint: #5b6b83;
+  --accent: #38e1ff;
+  --accent-soft: rgba(56, 225, 255, 0.12);
+  --accent-strong: rgba(56, 225, 255, 0.35);
+  --teal: #2dd4bf;
+  --warning: #ffb547;
+  --warning-soft: rgba(255, 181, 71, 0.14);
+  --danger: #fb7185;
+  --danger-soft: rgba(251, 113, 133, 0.14);
+  --success: #34d399;
+  --success-soft: rgba(52, 211, 153, 0.14);
+  --slate: #7f93ad;
+  --shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  --glow: 0 0 24px rgba(56, 225, 255, 0.35);
+  --ring: rgba(56, 225, 255, 0.55);
+  --scrollbar: rgba(148, 163, 184, 0.25);
+  --vignette: radial-gradient(ellipse at center, rgba(7, 13, 23, 0) 55%, rgba(7, 13, 23, 0.55) 100%);
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+  --bg: #e6edf4;
+  --bg-elevated: #ffffff;
+  --panel: rgba(255, 255, 255, 0.8);
+  --panel-solid: #ffffff;
+  --panel-strong: rgba(255, 255, 255, 0.94);
+  --border: rgba(15, 23, 42, 0.1);
+  --border-strong: rgba(15, 23, 42, 0.22);
+  --text: #0f172a;
+  --text-muted: #4b5b70;
+  --text-faint: #7d8ba0;
+  --accent: #0284c7;
+  --accent-soft: rgba(2, 132, 199, 0.1);
+  --accent-strong: rgba(2, 132, 199, 0.3);
+  --teal: #0d9488;
+  --warning: #d97706;
+  --warning-soft: rgba(217, 119, 6, 0.12);
+  --danger: #e11d48;
+  --danger-soft: rgba(225, 29, 72, 0.1);
+  --success: #059669;
+  --success-soft: rgba(5, 150, 105, 0.12);
+  --slate: #64748b;
+  --shadow: 0 12px 36px rgba(15, 23, 42, 0.14);
+  --glow: 0 0 20px rgba(2, 132, 199, 0.25);
+  --ring: rgba(2, 132, 199, 0.5);
+  --scrollbar: rgba(15, 23, 42, 0.2);
+  --vignette: radial-gradient(ellipse at center, rgba(230, 237, 244, 0) 60%, rgba(180, 195, 210, 0.35) 100%);
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-elevated: var(--bg-elevated);
+  --color-panel: var(--panel);
+  --color-panel-solid: var(--panel-solid);
+  --color-panel-strong: var(--panel-strong);
+  --color-line: var(--border);
+  --color-line-strong: var(--border-strong);
+  --color-ink: var(--text);
+  --color-muted: var(--text-muted);
+  --color-faint: var(--text-faint);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-strong: var(--accent-strong);
+  --color-teal: var(--teal);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-slate: var(--slate);
+
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --shadow-panel: var(--shadow);
+  --shadow-glow: var(--glow);
+
+  --animate-live: live 2.2s ease-in-out infinite;
+  --animate-fade-in: fade-in 220ms ease-out both;
+  --animate-slide-in-right: slide-in-right 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-slide-up: slide-up 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-slide-down: slide-down 200ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-feed-in: feed-in 380ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-shimmer: shimmer 1.6s linear infinite;
+  --animate-radar: radar 3.2s linear infinite;
+}
+
+@keyframes live {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 var(--ring);
+    opacity: 1;
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(0, 0, 0, 0);
+    opacity: 0.85;
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes feed-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    max-height: 120px;
+  }
+}
+@keyframes shimmer {
+  from {
+    background-position: -200% 0;
+  }
+  to {
+    background-position: 200% 0;
+  }
+}
+@keyframes radar {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ------------------------------------------------------------------------ */
+/* Base                                                                      */
+/* ------------------------------------------------------------------------ */
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-feature-settings:
+    'cv02',
+    'cv03',
+    'cv04',
+    'cv11',
+    'tnum';
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+
+body {
+  overflow: hidden;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--scrollbar);
+  border-radius: 8px;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+button,
+input,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+/* ------------------------------------------------------------------------ */
+/* Components                                                                */
+/* ------------------------------------------------------------------------ */
+
+@utility glass {
+  background: var(--panel);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+@utility glass-strong {
+  background: var(--panel-strong);
+  backdrop-filter: blur(22px) saturate(140%);
+  -webkit-backdrop-filter: blur(22px) saturate(140%);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+@utility label-caps {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--text-faint);
+}
+
+@utility num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+@utility skeleton {
+  position: relative;
+  overflow: hidden;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--border) 25%, var(--border-strong) 50%, var(--border) 75%);
+  background-size: 200% 100%;
+  animation: var(--animate-shimmer);
+}
+
+@utility hairline {
+  border-color: var(--border);
+}
+
+/* Map chrome ------------------------------------------------------------- */
+
+/* MapLibre's stylesheet forces `position: relative` on the container; this
+   unlayered rule keeps the map filling its parent. */
+.gsr-map.maplibregl-map {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.gsr-map .maplibregl-ctrl-attrib {
+  background: var(--panel);
+  color: var(--text-faint);
+  font-size: 10px;
+  border-top-left-radius: 6px;
+}
+.gsr-map .maplibregl-ctrl-attrib a {
+  color: var(--text-muted);
+}
+.gsr-map .maplibregl-ctrl-attrib-button {
+  filter: invert(0.6);
+}
+.gsr-map .maplibregl-canvas:focus {
+  outline: none;
+}
+.gsr-map .maplibregl-canvas-container.maplibregl-interactive {
+  cursor: grab;
+}
+
+.map-vignette {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  background: var(--vignette);
+}
+
+/* Reduced motion --------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
