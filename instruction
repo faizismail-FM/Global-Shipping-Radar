@@ -1,0 +1,1654 @@
+# Build: Global Shipping Radar
+
+You are an expert full-stack engineer and product designer.
+
+Build a production-quality web application called **Global Shipping Radar** from scratch.
+
+The application is a modern, interactive global maritime logistics dashboard. The main experience is a live world map showing container vessels moving around the world, with search, filters, vessel details, port information, routes, statistics, and simulated real-time updates.
+
+IMPORTANT:
+
+* Build the application fully, not just a prototype mockup.
+* Do not stop after creating the basic UI.
+* Make the application functional and interactive.
+* Use realistic simulated shipping data for the first version.
+* Do NOT require external APIs for the initial version.
+* Structure the application so real AIS/vessel/container APIs can be integrated later without rewriting the frontend.
+* Do not use fake API calls that pretend to be real.
+* Clearly label simulated data as simulated/demo data where appropriate.
+
+---
+
+# 1. TECHNOLOGY STACK
+
+Use:
+
+* Astro
+* TypeScript
+* React for interactive components
+* Tailwind CSS
+* MapLibre GL JS for the map
+* Lucide icons
+* Local/static JSON or TypeScript data for the initial dataset
+* No backend required for MVP
+* No external API required
+* Use browser local state where appropriate
+
+Prefer clean, modular architecture.
+
+Use strict TypeScript.
+
+Do not introduce unnecessary dependencies.
+
+---
+
+# 2. PRODUCT CONCEPT
+
+The application should feel like a professional maritime operations command center.
+
+Think:
+
+* Marine traffic monitoring
+* Logistics control tower
+* Global shipping intelligence
+* Vessel tracking
+* Port monitoring
+
+But create an original UI and visual identity.
+
+The application should NOT look like a generic admin dashboard.
+
+The map should be the main focus.
+
+The user should immediately understand:
+
+> "This is a live global shipping radar."
+
+---
+
+# 3. OVERALL LAYOUT
+
+Create a full-screen application.
+
+Desktop layout:
+
+┌──────────────────────────────────────────────────────────────┐
+│ GLOBAL SHIPPING RADAR       🔴 LIVE       Search...    ⚙ 👤 │
+├─────────────┬────────────────────────────────────────────────┤
+│             │                                                │
+│ NAVIGATION  │                                                │
+│             │                                                │
+│ Overview    │                 WORLD MAP                      │
+│ Vessels     │                                                │
+│ Ports       │             🚢     🚢                          │
+│ Routes      │                     •                          │
+│ Alerts      │       🚢                         🚢             │
+│             │                                                │
+│             │                                                │
+│             │                                                │
+│             │                                                │
+├─────────────┴────────────────────────────────────────────────┤
+│ Vessels 72,438 │ At Sea 58,291 │ In Port 14,147 │ Delayed 2,184 │
+└──────────────────────────────────────────────────────────────┘
+
+However, the map must remain the dominant visual element.
+
+Use floating panels instead of making the entire interface look like a traditional admin dashboard.
+
+---
+
+# 4. VISUAL STYLE
+
+Create a premium modern maritime technology interface.
+
+Default theme:
+
+Dark mode.
+
+Use:
+
+* Deep navy/charcoal background
+* Subtle borders
+* Glass/frosted floating panels
+* High contrast typography
+* Subtle glow around active/live elements
+* Minimal gradients
+* Professional data visualization
+* Smooth animations
+
+Avoid:
+
+* Excessive rounded cards
+* Huge colorful gradients
+* Generic SaaS dashboard appearance
+* Excessive shadows
+* Cartoonish icons
+* Overly bright UI
+
+The map should feel cinematic and professional.
+
+---
+
+# 5. WORLD MAP
+
+Use MapLibre GL JS.
+
+Display a world map/globe-like experience.
+
+The map should support:
+
+* Zoom
+* Pan
+* Rotation where practical
+* World view
+* Country boundaries
+* Coastlines
+* Major ports
+* Shipping routes
+* Vessel markers
+
+Use an appropriate freely accessible map style or a local/fallback style.
+
+Do not hard-code an API key.
+
+If a map style requires a token, create a clearly documented environment variable:
+
+PUBLIC_MAP_STYLE_URL
+
+But the app should have a sensible fallback so development does not immediately break.
+
+---
+
+# 6. VESSEL DATA
+
+Create a realistic simulated vessel dataset.
+
+Generate at least:
+
+### 100+ vessels
+
+Each vessel should contain:
+
+```typescript
+interface Vessel {
+  id: string;
+  name: string;
+  imo: string;
+  mmsi: string;
+  type: "container";
+  flag: string;
+  flagCode: string;
+
+  latitude: number;
+  longitude: number;
+
+  speed: number;
+  heading: number;
+
+  status:
+    | "underway"
+    | "anchored"
+    | "moored"
+    | "delayed";
+
+  destination: string;
+
+  departurePort: string;
+  arrivalPort: string;
+
+  eta: string;
+
+  vesselLength: number;
+  vesselWidth: number;
+
+  capacityTEU: number;
+
+  operator: string;
+
+  route: string[];
+
+  lastUpdated: string;
+}
+```
+
+Use realistic shipping company/operator names and realistic vessel names.
+
+Examples:
+
+EVER ACE
+MSC IRINA
+OOCL SPAIN
+COSCO SHIPPING
+ONE INNOVATION
+MAERSK SENTOSA
+CMA CGM MARCO POLO
+
+Do not claim these are actually in these locations.
+
+This is simulated data.
+
+---
+
+# 7. VESSEL POSITION SIMULATION
+
+Make the vessels appear alive.
+
+Every few seconds, update vessel positions slightly based on:
+
+* Speed
+* Heading
+
+Example:
+
+```text
+Vessel moves:
+latitude += movement
+longitude += movement
+```
+
+Do not make vessels jump randomly.
+
+Movement should be smooth.
+
+Create a simulation engine:
+
+```typescript
+updateVesselPositions()
+```
+
+It should:
+
+1. Find vessels with status "underway"
+2. Calculate a small movement based on speed and heading
+3. Update coordinates
+4. Update lastUpdated
+5. Trigger map refresh
+
+The user should visually see vessels moving.
+
+Add a toggle:
+
+```text
+LIVE SIMULATION ●
+```
+
+Allow the user to pause/resume simulation.
+
+---
+
+# 8. VESSEL MARKERS
+
+Vessel markers should look like small ship indicators rather than generic map pins.
+
+Marker orientation should correspond to heading.
+
+Different states:
+
+UNDERWAY:
+
+* bright active marker
+
+ANCHORED:
+
+* subdued marker
+
+DELAYED:
+
+* warning marker
+
+MOORED:
+
+* static/subdued marker
+
+Do not render thousands of complex DOM elements.
+
+Use an efficient MapLibre layer/source approach where possible.
+
+Implement clustering or density handling if necessary.
+
+---
+
+# 9. VESSEL HOVER
+
+When the user hovers over a vessel:
+
+Show a compact tooltip:
+
+```text
+EVER ACE
+Container Ship
+
+Speed       17.2 kn
+Destination Rotterdam
+ETA         18 Sep
+
+Click for details →
+```
+
+Keep it compact.
+
+---
+
+# 10. VESSEL CLICK
+
+When the user clicks a vessel, open a right-side detail panel.
+
+Example:
+
+```text
+┌──────────────────────────────────────┐
+│ ← VESSEL DETAILS               ×    │
+│                                      │
+│ 🚢 EVER ACE                          │
+│ Container Ship                      │
+│                                      │
+│ IMO 9876543                          │
+│ MMSI 563123456                      │
+│                                      │
+│ STATUS                               │
+│ ● Underway                           │
+│                                      │
+│ CURRENT POSITION                     │
+│ 1.264° N, 103.840° E                │
+│                                      │
+│ SPEED              HEADING           │
+│ 17.4 kn             284°             │
+│                                      │
+│ VOYAGE                               │
+│                                      │
+│ Port Klang                           │
+│       ↓                              │
+│ Singapore                            │
+│       ↓                              │
+│ Colombo                              │
+│       ↓                              │
+│ Rotterdam                            │
+│                                      │
+│ ETA                                  │
+│ 18 Sep 2026                          │
+│                                      │
+│ CAPACITY                             │
+│ 20,000 TEU                           │
+│                                      │
+│ [ VIEW ROUTE ]                       │
+└──────────────────────────────────────┘
+```
+
+Panel should animate smoothly into view.
+
+---
+
+# 11. VESSEL SEARCH
+
+Create a global search box.
+
+User can search:
+
+* Vessel name
+* IMO number
+* MMSI
+* Destination
+* Operator
+
+Example:
+
+```text
+Search vessels, IMO, MMSI...
+```
+
+When typing:
+
+```text
+EVER
+```
+
+show:
+
+```text
+VESSELS
+
+🚢 EVER ACE
+   IMO 9876543
+   Rotterdam
+
+🚢 EVER GIVEN
+   IMO 9811000
+   Singapore
+```
+
+Clicking a result:
+
+1. Close search dropdown
+2. Fly map to vessel
+3. Zoom in
+4. Open vessel details
+
+---
+
+# 12. SMART SEARCH
+
+Make the search field intelligent.
+
+If the input resembles:
+
+Container number:
+
+```text
+MSBU5471161
+```
+
+show:
+
+```text
+CONTAINER SEARCH
+
+MSBU5471161
+
+Container tracking requires a connected carrier/
+tracking data source.
+
+[ Demo container lookup ]
+```
+
+For MVP, provide simulated container records.
+
+Do NOT imply that the information is real.
+
+If input resembles:
+
+```text
+Port Klang
+```
+
+show:
+
+```text
+LOCATION
+
+Port Klang
+Malaysia
+
+[ View Port ]
+```
+
+If input resembles:
+
+```text
+IMO 9876543
+```
+
+search vessel by IMO.
+
+---
+
+# 13. CONTAINER TRACKING
+
+Create a simulated container tracking feature.
+
+Dataset:
+
+```typescript
+interface Container {
+  containerNumber: string;
+  sizeType: string;
+  status: string;
+
+  vesselName: string;
+  voyage: string;
+
+  portOfLoading: string;
+  portOfDischarge: string;
+
+  currentLocation: string;
+
+  estimatedArrival: string;
+
+  route: string[];
+}
+```
+
+Create at least 20 realistic-looking demo container numbers.
+
+Example:
+
+MSBU5471161
+
+Important:
+These are DEMO records.
+
+Container search should show:
+
+```text
+CONTAINER
+
+MSBU5471161
+
+40HC
+In Transit
+
+VESSEL
+EVER ACE
+
+VOYAGE
+123E
+
+ROUTE
+
+Port Klang
+     ↓
+Singapore
+     ↓
+Colombo
+     ↓
+Rotterdam
+
+CURRENT LOCATION
+Singapore Strait
+
+ETA
+22 Sep 2026
+```
+
+Add:
+
+```text
+Demo tracking data
+```
+
+to make clear that this is not live carrier data.
+
+---
+
+# 14. PORTS
+
+Create a port dataset with at least 30 major global ports.
+
+Examples:
+
+* Port Klang
+* Singapore
+* Rotterdam
+* Shanghai
+* Ningbo
+* Shenzhen
+* Hong Kong
+* Busan
+* Tokyo
+* Los Angeles
+* Long Beach
+* Dubai
+* Jebel Ali
+* Colombo
+* Hamburg
+* Antwerp
+* Felixstowe
+* New York
+* Savannah
+* Melbourne
+* Sydney
+
+Each port:
+
+```typescript
+interface Port {
+  id: string;
+  name: string;
+  country: string;
+
+  latitude: number;
+  longitude: number;
+
+  vesselsInPort: number;
+  vesselsAnchored: number;
+
+  arrivalsToday: number;
+  departuresToday: number;
+
+  congestion:
+    | "low"
+    | "medium"
+    | "high";
+
+  averageWaitingHours: number;
+}
+```
+
+Show ports on the map.
+
+---
+
+# 15. PORT CLICK
+
+Clicking a port should show:
+
+```text
+SINGAPORE
+
+Singapore
+
+CONGESTION
+HIGH
+
+Vessels in port
+428
+
+Anchored
+127
+
+Arrivals today
+312
+
+Departures
+298
+
+Average waiting
+18.4 hours
+
+[ VIEW VESSELS ]
+```
+
+The map should zoom to the port.
+
+---
+
+# 16. ROUTES
+
+Create simulated major shipping routes.
+
+Examples:
+
+```text
+Asia → Europe
+Asia → North America
+Asia → Australia
+Europe → North America
+Middle East → Asia
+```
+
+Display routes as subtle lines on the map.
+
+Routes should not overwhelm the vessel markers.
+
+Allow:
+
+```text
+Routes
+[ ON / OFF ]
+```
+
+---
+
+# 17. FILTERS
+
+Add a floating filter panel.
+
+Filters:
+
+### Vessel Status
+
+☑ Underway
+☑ Anchored
+☑ Moored
+☑ Delayed
+
+### Vessel Type
+
+☑ Container
+
+### Speed
+
+All
+0–5 kn
+5–15 kn
+15–25 kn
+25+ kn
+
+### Region
+
+* Asia
+* Europe
+* North America
+* South America
+* Africa
+* Middle East
+* Oceania
+
+### Destination
+
+Search destination
+
+When filters change, update the map immediately.
+
+---
+
+# 18. MAP CONTROLS
+
+Add professional map controls:
+
+*
+
+−
+
+⟳ Reset View
+
+⌖ Locate / World View
+
+Layers
+
+Inside Layers:
+
+```text
+☑ Vessels
+☑ Ports
+☑ Routes
+☐ Heatmap
+☐ Weather
+```
+
+Weather can initially be disabled/placeholder.
+
+---
+
+# 19. GLOBAL STATISTICS
+
+At the bottom/top of the screen, show live counters:
+
+```text
+VESSELS ONLINE
+72,438
+
+AT SEA
+58,291
+
+IN PORT
+14,147
+
+DELAYED
+2,184
+
+PORTS MONITORED
+186
+```
+
+Because this is simulated, generate these from the dataset rather than hardcoding everything.
+
+Counters should animate subtly when values change.
+
+---
+
+# 20. ACTIVITY FEED
+
+Create a floating "Live Activity" panel.
+
+Example:
+
+```text
+LIVE ACTIVITY
+
+● Vessel entered Singapore Strait
+  EVER ACE
+  12 sec ago
+
+● Vessel departed Port Klang
+  MSC IRINA
+  24 sec ago
+
+● Port congestion increased
+  Rotterdam
+  38 sec ago
+
+● Vessel destination updated
+  OOCL SPAIN
+  1 min ago
+```
+
+Generate simulated events based on the simulation engine.
+
+New events should appear at the top.
+
+Maximum 20 events.
+
+---
+
+# 21. ALERTS
+
+Create a basic alerts system.
+
+Example alerts:
+
+```text
+HIGH CONGESTION
+Singapore
+Port waiting time > 18h
+
+VESSEL DELAY
+EVER ACE
+ETA delayed by 8h
+
+HIGH TRAFFIC
+Malacca Strait
+```
+
+Show an alert badge in the navigation.
+
+Clicking an alert should move the map to the relevant location.
+
+---
+
+# 22. SIDEBAR NAVIGATION
+
+Create:
+
+```text
+GLOBAL SHIPPING RADAR
+
+Overview
+Vessels
+Ports
+Routes
+Alerts
+
+────────────────
+
+TOOLS
+
+Container Tracking
+Voyage Search
+
+────────────────
+
+SYSTEM
+
+Simulation ●
+Settings
+```
+
+Overview should be the default.
+
+The other sections can initially be functional views using the same data.
+
+Do not create empty placeholder pages.
+
+---
+
+# 23. VESSELS PAGE
+
+Create a full vessel list.
+
+Columns:
+
+* Vessel
+* IMO
+* Status
+* Speed
+* Destination
+* ETA
+* Operator
+* Capacity
+* Updated
+
+Features:
+
+* Search
+* Sort
+* Filter
+* Pagination
+* Click row → map focuses vessel
+
+Make this responsive.
+
+---
+
+# 24. PORTS PAGE
+
+Create a port monitoring table.
+
+Columns:
+
+* Port
+* Country
+* Congestion
+* Vessels
+* Anchored
+* Arrivals
+* Departures
+* Waiting Time
+
+Use visual congestion indicators.
+
+---
+
+# 25. ROUTES PAGE
+
+Show:
+
+```text
+ASIA → EUROPE
+
+Vessels
+1,284
+
+Avg Transit
+29.4 days
+
+Active
+847
+
+Delayed
+94
+```
+
+Other routes:
+
+Asia → North America
+Asia → Australia
+Europe → North America
+Middle East → Asia
+
+---
+
+# 26. CONTAINER TRACKING PAGE
+
+Create a dedicated tracking screen.
+
+Large search field:
+
+```text
+Enter container number
+```
+
+Example:
+
+```text
+MSBU5471161
+```
+
+Show a tracking timeline:
+
+```text
+✓ Port Klang
+  Loaded
+
+✓ Singapore
+  Transshipment
+
+● Singapore Strait
+  In Transit
+
+○ Colombo
+  Upcoming
+
+○ Rotterdam
+  Destination
+```
+
+Make the timeline visually attractive.
+
+---
+
+# 27. RESPONSIVENESS
+
+Desktop is the primary target.
+
+Also support tablet.
+
+For mobile:
+
+* Collapse sidebar
+* Full-screen map
+* Floating search
+* Bottom sheet for vessel details
+* Mobile filter drawer
+
+Do not allow the UI to become unusable on smaller screens.
+
+---
+
+# 28. ANIMATIONS
+
+Use subtle professional animation.
+
+Examples:
+
+* Vessel movement
+* Panel slide-in
+* Search dropdown
+* Counter updates
+* Live indicator pulse
+* Map fly-to animation
+* Route drawing
+* Activity feed updates
+
+Avoid excessive animation.
+
+Performance is important.
+
+---
+
+# 29. PERFORMANCE
+
+The map must remain responsive.
+
+Do not create hundreds of React DOM elements for vessels if MapLibre layers can be used instead.
+
+Use:
+
+* GeoJSON sources
+* Symbol layers
+* Circle layers
+* Efficient filtering
+* Memoization where appropriate
+
+If necessary, reduce visual detail at low zoom levels.
+
+---
+
+# 30. DATA ARCHITECTURE
+
+Create clear data modules.
+
+Suggested structure:
+
+```text
+src/
+  components/
+    map/
+    vessels/
+    ports/
+    search/
+    panels/
+    navigation/
+    dashboard/
+
+  data/
+    vessels.ts
+    ports.ts
+    containers.ts
+    routes.ts
+
+  lib/
+    simulation/
+    map/
+    search/
+    formatting/
+
+  types/
+    vessel.ts
+    port.ts
+    container.ts
+
+  pages/
+```
+
+Adapt this to Astro's preferred structure where necessary.
+
+Keep business logic out of UI components.
+
+---
+
+# 31. API-READY ARCHITECTURE
+
+Even though the MVP uses simulated data, create an abstraction:
+
+```typescript
+interface VesselDataProvider {
+  getVessels(): Promise<Vessel[]>;
+  getVessel(id: string): Promise<Vessel | null>;
+  searchVessels(query: string): Promise<Vessel[]>;
+}
+```
+
+Create:
+
+```text
+MockVesselProvider
+```
+
+Later we should be able to add:
+
+```text
+AISVesselProvider
+```
+
+without rewriting the UI.
+
+Similarly:
+
+```typescript
+interface ContainerDataProvider {
+  searchContainer(
+    containerNumber: string
+  ): Promise<Container | null>;
+}
+```
+
+Create:
+
+```text
+MockContainerProvider
+```
+
+This is important.
+
+---
+
+# 32. REALTIME ARCHITECTURE
+
+Create a simulation service:
+
+```typescript
+SimulationEngine
+```
+
+Responsibilities:
+
+* Start simulation
+* Stop simulation
+* Update vessels
+* Generate events
+* Update port statistics
+* Generate alerts
+
+Expose state through a clean mechanism that React components can consume.
+
+Do not put a giant interval directly inside the main page component.
+
+---
+
+# 33. SEARCH EXPERIENCE
+
+Search should be one of the most polished parts of the application.
+
+Keyboard shortcuts:
+
+```text
+/
+```
+
+Focus search.
+
+```text
+ESC
+```
+
+Close search.
+
+```text
+ENTER
+```
+
+Select first result.
+
+Search categories:
+
+```text
+VESSEL
+PORT
+CONTAINER
+LOCATION
+```
+
+Show icons for each.
+
+---
+
+# 34. DEMO MODE
+
+Because there are no APIs, add a small indicator:
+
+```text
+● SIMULATION
+```
+
+Click it to open:
+
+```text
+SIMULATION MODE
+
+This dashboard currently uses simulated
+shipping data.
+
+Update frequency
+[ 2 sec ]
+
+Vessel movement
+[ ON ]
+
+Activity generation
+[ ON ]
+
+[ Pause Simulation ]
+```
+
+Make this polished.
+
+---
+
+# 35. SETTINGS
+
+Create a settings panel.
+
+Options:
+
+```text
+Appearance
+Dark / Light
+
+Map
+Show routes
+Show ports
+Show vessel labels
+
+Simulation
+Update interval
+
+Units
+Knots
+KM/H
+
+Distance
+Nautical miles
+Kilometers
+```
+
+Persist user preferences in localStorage.
+
+---
+
+# 36. LIGHT MODE
+
+Although dark mode is the default, implement light mode properly.
+
+Do NOT simply invert colors.
+
+Design a proper light theme.
+
+Persist the selected theme.
+
+---
+
+# 37. ACCESSIBILITY
+
+Include:
+
+* Keyboard navigation
+* Visible focus states
+* Semantic buttons
+* ARIA labels where needed
+* Adequate contrast
+* Screen-reader friendly controls
+
+Do not sacrifice usability for visuals.
+
+---
+
+# 38. ERROR STATES
+
+Implement proper empty/error states.
+
+Examples:
+
+```text
+No vessels found.
+
+Try searching for another vessel name,
+IMO number, or MMSI.
+```
+
+Container:
+
+```text
+Container not found.
+
+This demo only contains simulated tracking
+records.
+```
+
+---
+
+# 39. LOADING STATES
+
+Add polished skeleton/loading states for:
+
+* Vessel details
+* Port details
+* Search
+* Tables
+
+Do not use blank screens.
+
+---
+
+# 40. README
+
+Create a comprehensive README explaining:
+
+1. Project overview
+2. Tech stack
+3. How to install
+4. How to run
+5. How the simulation works
+6. Data architecture
+7. Map configuration
+8. Environment variables
+9. How to replace MockVesselProvider with a real API
+10. How to add a container tracking provider
+11. Production deployment
+
+Include example environment variables.
+
+---
+
+# 41. FUTURE API INTEGRATION
+
+Prepare the project for future real data.
+
+Document integration points for:
+
+### AIS / vessel data
+
+Potential future provider:
+
+```text
+AIS API
+```
+
+### Container tracking
+
+Potential future providers:
+
+```text
+Carrier APIs
+Container tracking APIs
+EDI
+Your own FM database
+```
+
+Do not integrate them now.
+
+Do not require API keys.
+
+---
+
+# 42. IMPORTANT LOGISTICS DETAILS
+
+Use correct terminology:
+
+* Vessel
+* IMO
+* MMSI
+* ETA
+* ETD
+* POL
+* POD
+* Transshipment
+* TEU
+* Container
+* Voyage
+* Port
+* Anchorage
+* Underway
+* Moored
+
+Do not invent nonsensical shipping terminology.
+
+---
+
+# 43. UX DETAILS
+
+The user should be able to accomplish this flow:
+
+### Flow 1
+
+Open website.
+
+Immediately see:
+
+> Global world map + moving vessels.
+
+### Flow 2
+
+Search:
+
+```text
+EVER ACE
+```
+
+Then:
+
+> Map flies to vessel → vessel highlighted → detail panel opens.
+
+### Flow 3
+
+Search:
+
+```text
+MSBU5471161
+```
+
+Then:
+
+> Container tracking result appears.
+
+### Flow 4
+
+Click:
+
+```text
+Singapore
+```
+
+Then:
+
+> Map zooms to Singapore → port panel appears → nearby vessels can be displayed.
+
+### Flow 5
+
+Click:
+
+```text
+Routes
+```
+
+Then:
+
+> Major global shipping lanes become visible.
+
+---
+
+# 44. POLISH
+
+Before considering the project finished, inspect the entire application visually.
+
+Fix:
+
+* Bad spacing
+* Overflow
+* Text wrapping
+* Misaligned controls
+* Broken mobile layouts
+* Poor contrast
+* Inconsistent typography
+* Excessive borders
+* Unnecessary UI
+* Map marker problems
+* Animation jank
+
+The result should feel like a serious commercial product.
+
+---
+
+# 45. DO NOT DO THESE THINGS
+
+Do NOT:
+
+* Require a backend for the initial MVP
+* Require paid APIs
+* Require API keys
+* Pretend mock data is real
+* Build only static screenshots
+* Create fake buttons that do nothing
+* Create empty pages
+* Hardcode all UI statistics independently of the dataset
+* Use random vessel movement every second
+* Overload the map with labels
+* Make every component a huge card
+* Use excessive gradients
+* Use generic dashboard templates
+
+---
+
+# 46. DEVELOPMENT PROCESS
+
+Follow this order:
+
+### Phase 1
+
+Create project and install dependencies.
+
+### Phase 2
+
+Create types and simulated datasets.
+
+### Phase 3
+
+Build MapLibre world map.
+
+### Phase 4
+
+Add vessel markers.
+
+### Phase 5
+
+Add vessel movement simulation.
+
+### Phase 6
+
+Add vessel search.
+
+### Phase 7
+
+Add vessel detail panel.
+
+### Phase 8
+
+Add ports and port details.
+
+### Phase 9
+
+Add routes.
+
+### Phase 10
+
+Add statistics.
+
+### Phase 11
+
+Add activity feed.
+
+### Phase 12
+
+Add filters.
+
+### Phase 13
+
+Add container tracking.
+
+### Phase 14
+
+Add vessels/ports/routes pages.
+
+### Phase 15
+
+Add settings and theme.
+
+### Phase 16
+
+Responsive/mobile optimization.
+
+### Phase 17
+
+Performance optimization.
+
+### Phase 18
+
+Final QA.
+
+---
+
+# 47. FINAL QA CHECKLIST
+
+Before finishing, verify:
+
+* [ ] Application starts successfully
+* [ ] No TypeScript errors
+* [ ] No console errors
+* [ ] Map loads
+* [ ] Vessels appear
+* [ ] Vessels move
+* [ ] Simulation can pause/resume
+* [ ] Search works
+* [ ] Vessel search works
+* [ ] IMO search works
+* [ ] Port search works
+* [ ] Container search works
+* [ ] Vessel detail panel works
+* [ ] Port detail panel works
+* [ ] Routes toggle works
+* [ ] Filters work
+* [ ] Activity feed updates
+* [ ] Alerts work
+* [ ] Vessel table works
+* [ ] Port table works
+* [ ] Route page works
+* [ ] Container tracking works
+* [ ] Dark mode works
+* [ ] Light mode works
+* [ ] Settings persist
+* [ ] Mobile layout works
+* [ ] No fake non-functional controls
+* [ ] README is complete
+
+---
+
+# 48. MOST IMPORTANT PRODUCT REQUIREMENT
+
+The first screen must create a strong "WOW" effect.
+
+When the user opens the application, they should immediately see:
+
+> A living world map with hundreds of simulated container vessels moving across global shipping lanes.
+
+The application should feel alive.
+
+The map is the product.
+
+Everything else supports the map.
+
+Do not let the UI become more visually dominant than the map.
+
+---
+
+# START NOW
+
+Start by inspecting the existing project.
+
+If it is empty, initialize the Astro project.
+
+Then implement the application phase by phase.
+
+Do not merely describe what you would build.
+
+Actually create the files and code.
+
+After implementation:
+
+1. Run the application.
+2. Check for errors.
+3. Fix errors.
+4. Test the major user flows.
+5. Review the UI.
+6. Fix visual issues.
+7. Ensure the README is complete.
+
+Continue until the application is a polished working MVP.
