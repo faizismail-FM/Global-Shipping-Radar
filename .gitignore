@@ -27,5 +27,3 @@ qa/
 
 # vercel
 .vercel/
-.vercel
-.env*
