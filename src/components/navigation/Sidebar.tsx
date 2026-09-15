@@ -85,16 +85,26 @@ export function Sidebar() {
       aria-label="Primary navigation"
       data-collapsed={collapsed || undefined}
     >
-      <div className={cn('flex items-center border-b hairline', collapsed ? 'justify-center px-0 py-3' : 'gap-2.5 px-4 py-3.5')}>
+      <div className={cn('flex items-center border-b hairline', collapsed ? 'flex-col gap-2 px-0 py-3' : 'gap-2.5 px-3 py-3.5')}>
         <div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-accent-soft text-accent" title="Global Shipping Radar">
           <Radar size={17} />
         </div>
         {!collapsed && (
-          <div className="min-w-0 leading-tight">
+          <div className="min-w-0 flex-1 leading-tight">
             <div className="text-[12px] font-semibold tracking-wide text-ink">GLOBAL SHIPPING</div>
             <div className="text-[12px] font-semibold tracking-[0.2em] text-accent">RADAR</div>
           </div>
         )}
+        <button
+          type="button"
+          onClick={() => updateSettings({ sidebarCollapsed: !collapsed })}
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          aria-expanded={!collapsed}
+          className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-faint transition-colors hover:bg-accent-soft hover:text-ink"
+        >
+          {collapsed ? <PanelLeftOpen size={14} /> : <PanelLeftClose size={14} />}
+        </button>
       </div>
 
       <nav className={cn('flex-1 space-y-4 overflow-y-auto py-3', collapsed ? 'px-2' : 'px-2')}>
@@ -120,28 +130,15 @@ export function Sidebar() {
         </div>
       </nav>
 
-      <div className={cn('border-t hairline', collapsed ? 'px-2 py-2' : 'px-3 py-2')}>
-        {!collapsed && (
-          <div className="px-1 pb-2">
-            <div className="label-caps">Data source</div>
-            <div className="mt-1 flex items-center gap-2 text-[12px] text-muted">
-              <span className="h-1.5 w-1.5 rounded-full bg-warning" aria-hidden />
-              Simulated demo data
-            </div>
+      {!collapsed && (
+        <div className="border-t hairline px-4 py-3">
+          <div className="label-caps">Data source</div>
+          <div className="mt-1 flex items-center gap-2 text-[12px] text-muted">
+            <span className="h-1.5 w-1.5 rounded-full bg-warning" aria-hidden />
+            Simulated demo data
           </div>
-        )}
-        <button
-          type="button"
-          onClick={() => updateSettings({ sidebarCollapsed: !collapsed })}
-          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          aria-expanded={!collapsed}
-          className={cn('flex w-full items-center rounded-md py-1.5 text-[12px] text-muted transition-colors hover:bg-accent-soft/60 hover:text-ink', collapsed ? 'justify-center' : 'gap-2 px-2')}
-        >
-          {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
-          {!collapsed && <span>Collapse</span>}
-        </button>
-      </div>
+        </div>
+      )}
     </aside>
   );
 }
