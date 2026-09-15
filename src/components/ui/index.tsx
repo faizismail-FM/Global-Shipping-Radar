@@ -139,13 +139,13 @@ export function Toggle({
         onClick={() => onChange(!checked)}
         className={cn(
           'relative h-5 w-9 shrink-0 rounded-full border transition-colors',
-          checked ? 'border-accent bg-accent/80' : 'border-line-strong bg-transparent',
+          checked ? 'border-accent bg-accent' : 'border-line-strong bg-line',
         )}
       >
         <span
           className={cn(
-            'absolute top-0.5 h-3.5 w-3.5 rounded-full transition-transform',
-            checked ? 'translate-x-[18px] bg-[#04101a]' : 'translate-x-0.5 bg-muted',
+            'absolute left-0.5 top-0.5 h-3.5 w-3.5 rounded-full shadow-[0_1px_3px_rgba(0,0,0,0.45)] transition-transform duration-200',
+            checked ? 'translate-x-4 bg-white' : 'translate-x-0 bg-[var(--text-muted)]',
           )}
         />
       </button>

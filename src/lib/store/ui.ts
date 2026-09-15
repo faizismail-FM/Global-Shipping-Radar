@@ -48,6 +48,8 @@ export interface UIState {
   vesselsPageLane: string | null;
   /** Container number pre-filled on the tracking page. */
   trackingQuery: string;
+  /** "Drop pin" mode: the next click on the map zooms to that location. */
+  dropMode: boolean;
   /** Whether the map style finished loading (for the loading screen). */
   mapReady: boolean;
   /** True when the remote basemap failed and the bundled fallback is used. */
@@ -86,6 +88,7 @@ export const uiStore = createStore<UIState>({
   vesselsPagePort: null,
   vesselsPageLane: null,
   trackingQuery: '',
+  dropMode: false,
   mapReady: false,
   mapFallback: false,
 });
@@ -174,6 +177,9 @@ export const ui = {
   },
   openTracking(query: string) {
     uiStore.setState({ trackingQuery: query, view: 'tracking', overlay: null, searchOpen: false, mobileNavOpen: false });
+  },
+  setDropMode(on: boolean) {
+    if (uiStore.getState().dropMode !== on) uiStore.setState({ dropMode: on });
   },
   setMapReady(ready: boolean, fallback = false) {
     uiStore.setState({ mapReady: ready, mapFallback: fallback });

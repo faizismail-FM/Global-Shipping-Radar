@@ -10,7 +10,7 @@ import { applyFilters } from '@/lib/selectors';
 import { LANES, LANE_BY_ID } from '@/data/lanes';
 import { PORT_BY_ID } from '@/data/ports';
 import { SimulationEngine } from '@/lib/simulation/engine';
-import { normalizeLongitude, type LngLat } from '@/lib/geo';
+import { distanceNm, normalizeLongitude, type LngLat } from '@/lib/geo';
 import { VesselTooltip } from './VesselTooltip';
 import { MapControls } from './MapControls';
 
@@ -72,6 +72,32 @@ export function MapView() {
         if (uiStore.getState().searchOpen) ui.setSearchOpen(false);
         if (uiStore.getState().overlay) ui.closeOverlay();
       },
+    });
+
+    // "Drop pin" mode: any click on the map (vessel, port or empty sea) zooms there.
+    const dropAt = (point: { x: number; y: number }) => {
+      const [lng, lat] = scene.unproject(point);
+      const ports = store.getState().ports;
+      let nearest: (typeof ports)[number] | null = null;
+      let best = Infinity;
+      for (const p of ports) {
+        const d = distanceNm([lng, lat], [p.longitude, p.latitude]);
+        if (d < best) {
+          best = d;
+          nearest = p;
+        }
+      }
+      ui.setDropMode(false);
+      if (nearest && best <= 90) {
+        ui.openPort(nearest.id);
+        scene.flyTo(nearest.longitude, nearest.latitude, 8.5, 1800);
+      } else {
+        ui.closePanels();
+        scene.flyTo(lng, lat, 6.5, 1800);
+      }
+    };
+    scene.map.on('click', (e) => {
+      if (uiStore.getState().dropMode) dropAt({ x: e.point.x, y: e.point.y });
     });
 
     // ------------------------------------------------------------------
@@ -210,8 +236,13 @@ export function MapView() {
 
     let lastFilters = uiStore.getState().filters;
     let lastLayers = uiStore.getState().layers;
+    let lastDrop = uiStore.getState().dropMode;
     const unsubUI = uiStore.subscribe(() => {
       const state = uiStore.getState();
+      if (state.dropMode !== lastDrop) {
+        lastDrop = state.dropMode;
+        scene.map.getCanvas().style.cursor = state.dropMode ? 'crosshair' : '';
+      }
       syncSelection();
       syncRoute();
       syncLane();
@@ -279,11 +310,19 @@ export function MapView() {
           if (p) scene.flyTo(p.longitude, p.latitude, 8);
           break;
         }
+        case 'dropAt':
+          dropAt({ x: cmd.x, y: cmd.y });
+          break;
       }
     });
 
     const ro = new ResizeObserver(() => scene.resize());
     ro.observe(container);
+
+    // Expose the map for browser-based QA tooling only (?qa=1).
+    if (new URLSearchParams(window.location.search).has('qa')) {
+      (window as unknown as { __gsrMap?: unknown }).__gsrMap = scene.map;
+    }
 
     return () => {
       ro.disconnect();

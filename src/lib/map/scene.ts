@@ -14,8 +14,9 @@ import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&ur
 import type { FeatureCollection } from 'geojson';
 import type { Theme } from '@/types';
 import { buildLocalStyle, isLocalStyle, resolveStyle, LABEL_FONT } from './style';
+import { applyBasemapTheme, BASEMAP_PALETTES } from './basemapTheme';
 import { createVesselIcons } from './icons';
-import { EMPTY_FC } from './geojson';
+import { EMPTY_FC, graticuleGeoJSON } from './geojson';
 import type { LngLat } from '@/lib/geo';
 
 export interface SceneCallbacks {
@@ -43,6 +44,7 @@ export function worldZoomForWidth(width: number): number {
 }
 
 const SRC = {
+  graticule: 'gsr-graticule',
   lanes: 'gsr-lanes',
   laneHighlight: 'gsr-lane-highlight',
   routeDone: 'gsr-route-done',
@@ -54,28 +56,30 @@ const SRC = {
 const palette = (theme: Theme) =>
   theme === 'dark'
     ? {
-        lane: '#3fb9d6',
+        graticule: '#7ea2c9',
+        lane: '#4cc3de',
         laneHighlight: '#7ee8ff',
         routeDone: '#9fb3c8',
         route: '#38e1ff',
         selected: '#38e1ff',
-        label: '#c9d6e6',
-        labelHalo: '#070d17',
-        portLabel: '#9fb3c8',
-        portStroke: '#070d17',
+        label: '#d3dfee',
+        labelHalo: BASEMAP_PALETTES.dark.ocean,
+        portLabel: '#a9bbd1',
+        portStroke: BASEMAP_PALETTES.dark.ocean,
         low: '#34d399',
         medium: '#fbbf24',
         high: '#fb7185',
       }
     : {
-        lane: '#0e7490',
+        graticule: '#3f6a94',
+        lane: '#2d7ea3',
         laneHighlight: '#0369a1',
         routeDone: '#64748b',
-        route: '#0284c7',
-        selected: '#0284c7',
-        label: '#0f172a',
+        route: '#0369a1',
+        selected: '#0369a1',
+        label: '#14283d',
         labelHalo: '#ffffff',
-        portLabel: '#334155',
+        portLabel: '#2e4761',
         portStroke: '#ffffff',
         low: '#059669',
         medium: '#d97706',
@@ -91,6 +95,7 @@ export class MapScene {
   private theme: Theme;
   private callbacks: SceneCallbacks;
   private data: Record<keyof typeof SRC, FeatureCollection> = {
+    graticule: graticuleGeoJSON(10),
     lanes: EMPTY_FC,
     laneHighlight: EMPTY_FC,
     routeDone: EMPTY_FC,
@@ -160,6 +165,8 @@ export class MapScene {
 
   private onStyleLoad() {
     if (this.destroyed) return;
+    // The bundled fallback is authored in the palette already; remote basemaps get repainted.
+    if (!this.usingFallback) applyBasemapTheme(this.map, this.theme);
     this.addImages();
     this.ensureSources();
     this.ensureLayers();
@@ -172,7 +179,9 @@ export class MapScene {
     if (theme === this.theme) return;
     this.theme = theme;
     const style = this.usingFallback ? buildLocalStyle(theme) : resolveStyle(theme);
-    this.map.setStyle(style);
+    // Full reload rather than a style diff: the diff can stall against our
+    // repainted basemap layers, and every radar layer is rebuilt on style.load anyway.
+    this.map.setStyle(style, { diff: false });
   }
 
   private addImages() {
@@ -198,6 +207,18 @@ export class MapScene {
       if (!m.getLayer(layer.id)) m.addLayer(layer);
     };
 
+    // Graticule sits beneath everything radar-related; barely visible at world
+    // view, clearer when zoomed into open water.
+    add({
+      id: 'gsr-graticule',
+      type: 'line',
+      source: SRC.graticule,
+      paint: {
+        'line-color': c.graticule,
+        'line-opacity': ['interpolate', ['linear'], ['zoom'], 1, ['case', ['get', 'major'], 0.1, 0.05], 5, ['case', ['get', 'major'], 0.22, 0.12], 9, ['case', ['get', 'major'], 0.3, 0.16]],
+        'line-width': ['case', ['get', 'major'], 0.9, 0.6],
+      },
+    });
     add({
       id: 'gsr-lanes',
       type: 'line',
@@ -410,8 +431,10 @@ export class MapScene {
     const m = this.map;
     let hovered: string | null = null;
 
+    // Note: isStyleLoaded() can stay false while tiles stream in, so interaction
+    // is gated on our own layers being present instead.
     m.on('mousemove', (e: MapMouseEvent) => {
-      if (!m.isStyleLoaded() || !m.getLayer('gsr-vessels')) return;
+      if (!m.getLayer('gsr-vessels')) return;
       const features = this.queryAt(e.point, ['gsr-vessels']);
       const id = (features[0]?.properties?.id as string | undefined) ?? null;
       const portHit = id ? [] : this.queryAt(e.point, ['gsr-ports']);
@@ -430,7 +453,7 @@ export class MapScene {
       }
     });
     m.on('click', (e: MapMouseEvent) => {
-      if (!m.isStyleLoaded()) return;
+      if (!m.getLayer('gsr-vessels')) return;
       const vessel = this.queryAt(e.point, ['gsr-vessels'])[0];
       if (vessel?.properties?.id) {
         this.callbacks.onClickVessel(String(vessel.properties.id));
@@ -488,7 +511,7 @@ export class MapScene {
 
   setToggles(toggles: LayerToggles) {
     this.toggles = toggles;
-    if (this.map.isStyleLoaded()) this.applyToggles();
+    if (this.map.getLayer('gsr-vessels')) this.applyToggles();
   }
 
   setSelectedVessel(id: string | null) {
@@ -572,6 +595,11 @@ export class MapScene {
   project(lngLat: LngLat): { x: number; y: number } {
     const p = this.map.project([lngLat[0], lngLat[1]]);
     return { x: p.x, y: p.y };
+  }
+
+  unproject(point: { x: number; y: number }): LngLat {
+    const ll = this.map.unproject([point.x, point.y]);
+    return [ll.lng, ll.lat];
   }
 
   resize() {

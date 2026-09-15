@@ -177,7 +177,7 @@ export function GlobalSearch() {
                     role="option"
                     aria-selected={isActive}
                     data-index={index}
-                    onMouseEnter={() => setActive(index)}
+                    onMouseMove={() => { if (index !== active) setActive(index); }}
                     onClick={() => select(r)}
                     className={cn(
                       'flex w-full items-center gap-3 rounded-md px-2.5 py-2 text-left transition-colors',

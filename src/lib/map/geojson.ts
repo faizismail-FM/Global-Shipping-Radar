@@ -93,3 +93,22 @@ export function lineFeature(points: LngLat[], props: Record<string, unknown> = {
 }
 
 export const EMPTY_FC: FeatureCollection = { type: 'FeatureCollection', features: [] };
+
+/**
+ * Nautical-chart style graticule: meridians and parallels every `stepDeg`
+ * degrees. Gives open ocean a sense of scale and position when zoomed in.
+ */
+export function graticuleGeoJSON(stepDeg = 10): FeatureCollection<LineString, { major: boolean }> {
+  const features: Feature<LineString, { major: boolean }>[] = [];
+  for (let lng = -180; lng <= 180; lng += stepDeg) {
+    const coords: [number, number][] = [];
+    for (let lat = -85; lat <= 85; lat += 5) coords.push([lng, lat]);
+    features.push({ type: 'Feature', properties: { major: lng % 30 === 0 }, geometry: { type: 'LineString', coordinates: coords } });
+  }
+  for (let lat = -80; lat <= 80; lat += stepDeg) {
+    const coords: [number, number][] = [];
+    for (let lng = -180; lng <= 180; lng += 5) coords.push([lng, lat]);
+    features.push({ type: 'Feature', properties: { major: lat === 0 || lat % 30 === 0 }, geometry: { type: 'LineString', coordinates: coords } });
+  }
+  return { type: 'FeatureCollection', features };
+}

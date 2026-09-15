@@ -8,8 +8,8 @@
 :root,
 :root[data-theme='dark'] {
   color-scheme: dark;
-  --bg: #070d17;
-  --bg-elevated: #0c1524;
+  --bg: #081320;
+  --bg-elevated: #0d1a2b;
   --panel: rgba(10, 17, 29, 0.78);
   --panel-solid: #0d1626;
   --panel-strong: rgba(10, 17, 29, 0.92);
@@ -33,7 +33,7 @@
   --glow: 0 0 24px rgba(56, 225, 255, 0.35);
   --ring: rgba(56, 225, 255, 0.55);
   --scrollbar: rgba(148, 163, 184, 0.25);
-  --vignette: radial-gradient(ellipse at center, rgba(7, 13, 23, 0) 55%, rgba(7, 13, 23, 0.55) 100%);
+  --vignette: radial-gradient(ellipse at center, rgba(8, 19, 32, 0) 55%, rgba(8, 19, 32, 0.5) 100%);
 }
 
 :root[data-theme='light'] {
@@ -63,7 +63,7 @@
   --glow: 0 0 20px rgba(2, 132, 199, 0.25);
   --ring: rgba(2, 132, 199, 0.5);
   --scrollbar: rgba(15, 23, 42, 0.2);
-  --vignette: radial-gradient(ellipse at center, rgba(230, 237, 244, 0) 60%, rgba(180, 195, 210, 0.35) 100%);
+  --vignette: radial-gradient(ellipse at center, rgba(230, 237, 244, 0) 60%, rgba(150, 175, 200, 0.3) 100%);
 }
 
 @theme inline {
