@@ -24,3 +24,8 @@ pnpm-debug.log*
 
 # playwright / qa
 qa/
+
+# vercel
+.vercel/
+.vercel
+.env*
