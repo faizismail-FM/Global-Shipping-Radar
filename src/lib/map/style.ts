@@ -1,5 +1,6 @@
 import type { StyleSpecification } from 'maplibre-gl';
 import type { Theme } from '@/types';
+import { BASEMAP_PALETTES } from './basemapTheme';
 
 export const DEFAULT_DARK_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
 export const DEFAULT_LIGHT_STYLE = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
@@ -28,7 +29,7 @@ export function resolveStyle(theme: Theme): string | StyleSpecification {
  * blocked CDN) so the application never shows a blank map.
  */
 export function buildLocalStyle(theme: Theme): StyleSpecification {
-  const dark = theme === 'dark';
+  const p = BASEMAP_PALETTES[theme];
   const base = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
   return {
     version: 8,
@@ -38,18 +39,18 @@ export function buildLocalStyle(theme: Theme): StyleSpecification {
       world: { type: 'geojson', data: `${base}data/world-110m.geojson` },
     },
     layers: [
-      { id: 'background', type: 'background', paint: { 'background-color': dark ? '#070d17' : '#dfe8f0' } },
+      { id: 'background', type: 'background', paint: { 'background-color': p.ocean } },
       {
         id: 'land',
         type: 'fill',
         source: 'world',
-        paint: { 'fill-color': dark ? '#141d2c' : '#f4f6f8', 'fill-opacity': 1 },
+        paint: { 'fill-color': p.land, 'fill-opacity': 1 },
       },
       {
         id: 'coastline',
         type: 'line',
         source: 'world',
-        paint: { 'line-color': dark ? '#2a3a52' : '#b8c4d0', 'line-width': 0.8 },
+        paint: { 'line-color': p.coastline, 'line-width': 0.8 },
       },
       {
         id: 'country-labels',
@@ -63,7 +64,7 @@ export function buildLocalStyle(theme: Theme): StyleSpecification {
           'text-transform': 'uppercase',
           'text-letter-spacing': 0.1,
         },
-        paint: { 'text-color': dark ? '#43536b' : '#8a98a8', 'text-opacity': 0.9 },
+        paint: { 'text-color': p.labelMuted, 'text-opacity': 0.9 },
       },
     ],
   };

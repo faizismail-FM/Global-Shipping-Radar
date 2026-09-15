@@ -11,7 +11,9 @@ export type MapCommand =
   | { type: 'zoomIn' }
   | { type: 'zoomOut' }
   | { type: 'focusVessel'; id: string; zoom?: number }
-  | { type: 'focusPort'; id: string };
+  | { type: 'focusPort'; id: string }
+  /** Zoom to the map pixel a "person" marker was dropped on. */
+  | { type: 'dropAt'; x: number; y: number };
 
 type Handler = (cmd: MapCommand) => void;
 

@@ -137,7 +137,11 @@ Both can be overridden with environment variables (see below). Any MapLibre-comp
 
 **Offline fallback.** If the basemap cannot be fetched (no network, blocked CDN) the app automatically switches to a bundled style rendered from Natural Earth 1:110m country outlines (`public/data/world-110m.geojson`), so development never shows a blank map. Set `PUBLIC_MAP_STYLE_URL=local` to force it.
 
-Radar layers are added on top of whichever basemap loads: lanes (dashed lines), ports (congestion-coloured circles + labels), traffic heatmap, vessel symbols (canvas-drawn ship icons rotated by heading, status-coloured), vessel labels (zoom ≥ 5.5, toggleable) and the highlighted route/lane lines. All vessel data goes through a single GeoJSON source updated with `setData`; there are no per-vessel DOM elements.
+**Maritime re-theme.** The CARTO styles ship as neutral grey cartography, so after every style load `src/lib/map/basemapTheme.ts` repaints the basemap layers by id into a nautical palette: deep-navy ocean and slate land in dark mode, soft-blue ocean and warm light land in light mode, with quiet borders and labels. The pass is best-effort and skips layers it doesn't recognise, so custom styles still work. The bundled offline fallback uses the same palette.
+
+Radar layers are added on top of whichever basemap loads: a faint nautical graticule, lanes (dashed lines), ports (congestion-coloured circles + labels), traffic heatmap, vessel symbols (canvas-drawn ship icons rotated by heading, status-coloured), vessel labels (zoom ≥ 5.5, toggleable) and the highlighted route/lane lines. All vessel data goes through a single GeoJSON source updated with `setData`; there are no per-vessel DOM elements.
+
+**Map controls.** Besides zoom, reset and world view, the control stack has a "person" marker (Google Maps style): drag it onto the map and release to zoom to that spot, or click it and then click the map. If a port is within 90 nm of the drop the port panel opens. The desktop sidebar collapses to an icon rail via the button at its bottom; the state is remembered.
 
 ## 8. Environment variables
 

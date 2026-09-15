@@ -11,4 +11,6 @@ export interface Settings {
   updateIntervalMs: number;
   speedUnit: SpeedUnit;
   distanceUnit: DistanceUnit;
+  /** Desktop sidebar collapsed to icons only. */
+  sidebarCollapsed: boolean;
 }

@@ -13,6 +13,7 @@ export const DEFAULT_SETTINGS: Settings = {
   updateIntervalMs: Number.isFinite(DEFAULT_INTERVAL) && DEFAULT_INTERVAL >= 500 ? DEFAULT_INTERVAL : 2000,
   speedUnit: 'kn',
   distanceUnit: 'nm',
+  sidebarCollapsed: false,
 };
 
 function load(): Settings {
