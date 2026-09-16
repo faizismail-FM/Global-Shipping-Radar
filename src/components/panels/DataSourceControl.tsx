@@ -16,7 +16,7 @@ export function DataSourceControl() {
         ]}
         onChange={(v) => {
           updateSettings({ dataSource: v });
-          void applyDataSource(v, { flyToCoverage: v !== 'simulated' });
+          void applyDataSource(v, { flyToCoverage: true });
         }}
         label="Vessel data source"
       />
