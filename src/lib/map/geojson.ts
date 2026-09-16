@@ -33,7 +33,7 @@ export function vesselsToGeoJSON(
           icon: `vessel-${v.status}`,
           speed: v.speed,
           destination: v.destination,
-          eta: formatDateShort(v.eta),
+          eta: v.eta ? formatDateShort(v.eta) : '',
         },
         geometry: { type: 'Point', coordinates: p ? [p[0], p[1]] : [v.longitude, v.latitude] },
       };

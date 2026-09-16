@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { bootSimulation } from '@/lib/simulation';
 import { useUI } from '@/lib/store/ui';
 import { settingsStore } from '@/lib/store/settings';
+import { applyDataSource } from '@/lib/live';
+import { LiveStatusPill } from './dashboard/LiveStatusPill';
 import { Sidebar } from './navigation/Sidebar';
 import { TopBar } from './navigation/TopBar';
 import { MobileNav } from './navigation/MobileNav';
@@ -47,7 +49,10 @@ export default function App() {
     // Ensure the theme attribute matches persisted settings (the layout script handles first paint).
     settingsStore.setState({});
     bootSimulation()
-      .then(() => setBooted(true))
+      .then(() => {
+        setBooted(true);
+        void applyDataSource(settingsStore.getState().dataSource, { flyToCoverage: true });
+      })
       .catch((e: unknown) => setError(e instanceof Error ? e.message : 'Failed to start simulation'));
   }, []);
 
@@ -84,6 +89,7 @@ export default function App() {
           <div className="pointer-events-none absolute inset-0 z-10">
             <OverlayHost />
             <DetailPanelHost />
+            <LiveStatusPill />
             <ActiveView />
             {feedVisible && (
               <div className="pointer-events-none absolute bottom-3 left-3 hidden w-[300px] md:block">

@@ -41,20 +41,31 @@ const DATE_TIME = new Intl.DateTimeFormat('en-GB', {
 });
 const TIME = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
-export function formatDateShort(iso: string | number | Date): string {
-  return DATE_SHORT.format(new Date(iso));
+/** Parse loosely; live AIS records may carry empty or unreported timestamps. */
+function toDate(value: string | number | Date | null | undefined): Date | null {
+  if (value === null || value === undefined || value === '') return null;
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? null : d;
 }
 
-export function formatDateLong(iso: string | number | Date): string {
-  return DATE_LONG.format(new Date(iso));
+export function formatDateShort(iso: string | number | Date | null | undefined): string {
+  const d = toDate(iso);
+  return d ? DATE_SHORT.format(d) : '—';
 }
 
-export function formatDateTime(iso: string | number | Date): string {
-  return DATE_TIME.format(new Date(iso));
+export function formatDateLong(iso: string | number | Date | null | undefined): string {
+  const d = toDate(iso);
+  return d ? DATE_LONG.format(d) : '—';
 }
 
-export function formatTime(iso: string | number | Date): string {
-  return TIME.format(new Date(iso));
+export function formatDateTime(iso: string | number | Date | null | undefined): string {
+  const d = toDate(iso);
+  return d ? DATE_TIME.format(d) : '—';
+}
+
+export function formatTime(iso: string | number | Date | null | undefined): string {
+  const d = toDate(iso);
+  return d ? TIME.format(d) : '—';
 }
 
 export function formatRelative(timestamp: number, now = Date.now()): string {

@@ -1,4 +1,4 @@
-import type { Region, VesselStatus } from '@/types';
+import type { Region, VesselStatus, VesselType } from '@/types';
 import { createStore, useStore } from './createStore';
 
 export type View = 'overview' | 'vessels' | 'ports' | 'routes' | 'alerts' | 'tracking' | 'voyage';
@@ -7,7 +7,7 @@ export type SpeedBand = 'all' | '0-5' | '5-15' | '15-25' | '25+';
 
 export interface VesselFilters {
   statuses: VesselStatus[];
-  types: ['container'];
+  types: VesselType[];
   speed: SpeedBand;
   regions: Region[];
   destination: string;
@@ -57,10 +57,11 @@ export interface UIState {
 }
 
 export const ALL_STATUSES: VesselStatus[] = ['underway', 'anchored', 'moored', 'delayed'];
+export const ALL_TYPES: VesselType[] = ['container', 'cargo', 'tanker', 'passenger', 'other'];
 
 export const DEFAULT_FILTERS: VesselFilters = {
   statuses: [...ALL_STATUSES],
-  types: ['container'],
+  types: [...ALL_TYPES],
   speed: 'all',
   regions: [],
   destination: '',
@@ -187,5 +188,5 @@ export const ui = {
 };
 
 export function isFilterActive(f: VesselFilters): boolean {
-  return f.statuses.length !== ALL_STATUSES.length || f.speed !== 'all' || f.regions.length > 0 || f.destination.trim() !== '';
+  return f.statuses.length !== ALL_STATUSES.length || f.types.length !== ALL_TYPES.length || f.speed !== 'all' || f.regions.length > 0 || f.destination.trim() !== '';
 }

@@ -26,6 +26,7 @@ function focusEvent(e: ActivityEvent) {
 
 export function ActivityFeed({ className }: { className?: string }) {
   const events = useSimulation((s) => s.events);
+  const isLive = useSimulation((s) => s.dataSource === 'ais');
   const open = useUI((s) => s.activityOpen);
   const now = useNow(1000);
 
@@ -39,7 +40,9 @@ export function ActivityFeed({ className }: { className?: string }) {
       </button>
       {open && (
         <ul className="max-h-[220px] overflow-y-auto border-t hairline px-1 py-1 md:max-h-[300px]">
-          {events.length === 0 && <li className="px-2 py-3 text-[12px] text-faint">Waiting for simulated events…</li>}
+          {events.length === 0 && (
+            <li className="px-2 py-3 text-[12px] text-faint">{isLive ? 'Waiting for AIS status changes (arrivals, departures, zone entries)…' : 'Waiting for simulated events…'}</li>
+          )}
           {events.map((e) => (
             <li key={e.id} className="animate-feed-in">
               <button

@@ -1,8 +1,8 @@
 import { SlidersHorizontal, RotateCcw } from 'lucide-react';
-import type { Region, VesselStatus } from '@/types';
-import { ALL_STATUSES, ui, useUI, isFilterActive, type SpeedBand } from '@/lib/store/ui';
+import type { Region, VesselStatus, VesselType } from '@/types';
+import { ALL_STATUSES, ALL_TYPES, ui, useUI, isFilterActive, type SpeedBand } from '@/lib/store/ui';
 import { useSimulation } from '@/lib/hooks';
-import { applyFilters, vesselRegion } from '@/lib/selectors';
+import { applyFilters, vesselRegion, vesselTypeLabel } from '@/lib/selectors';
 import { REGIONS } from '@/data/regions';
 import { Button, Checkbox, PanelHeader, Segmented, TextInput } from '@/components/ui';
 import { useMemo } from 'react';
@@ -23,16 +23,21 @@ export function FilterPanel({ onClose }: { onClose: () => void }) {
   const counts = useMemo(() => {
     const byStatus: Record<VesselStatus, number> = { underway: 0, anchored: 0, moored: 0, delayed: 0 };
     const byRegion = new Map<Region, number>();
+    const byType = new Map<VesselType, number>();
     for (const v of vessels) {
       byStatus[v.status]++;
       const r = vesselRegion(v);
       byRegion.set(r, (byRegion.get(r) ?? 0) + 1);
+      byType.set(v.type, (byType.get(v.type) ?? 0) + 1);
     }
-    return { byStatus, byRegion, visible: applyFilters(vessels, filters).length };
+    return { byStatus, byRegion, byType, visible: applyFilters(vessels, filters).length };
   }, [vessels, filters]);
+  const presentTypes = ALL_TYPES.filter((t) => (counts.byType.get(t) ?? 0) > 0);
 
   const toggleStatus = (s: VesselStatus, on: boolean) =>
     ui.setFilters({ statuses: on ? [...filters.statuses, s] : filters.statuses.filter((x) => x !== s) });
+  const toggleType = (t: VesselType, on: boolean) =>
+    ui.setFilters({ types: on ? [...filters.types, t] : filters.types.filter((x) => x !== t) });
   const toggleRegion = (r: Region, on: boolean) =>
     ui.setFilters({ regions: on ? [...filters.regions, r] : filters.regions.filter((x) => x !== r) });
 
@@ -67,8 +72,15 @@ export function FilterPanel({ onClose }: { onClose: () => void }) {
 
         <section className="mb-4">
           <div className="label-caps mb-1">Vessel type</div>
-          <Checkbox checked onChange={() => undefined} label="Container" count={vessels.length} />
-          <p className="mt-0.5 text-[10px] text-faint">Only container vessels are part of this dataset.</p>
+          {presentTypes.map((t) => (
+            <Checkbox key={t} checked={filters.types.includes(t)} onChange={(on) => toggleType(t, on)} label={vesselTypeLabel(t)} count={counts.byType.get(t) ?? 0} />
+          ))}
+          {presentTypes.length === 1 && presentTypes[0] === 'container' && (
+            <p className="mt-0.5 text-[10px] text-faint">The simulated fleet contains container vessels only.</p>
+          )}
+          {presentTypes.includes('cargo') && (
+            <p className="mt-0.5 text-[10px] text-faint">AIS reports container ships as cargo vessels.</p>
+          )}
         </section>
 
         <section className="mb-4">

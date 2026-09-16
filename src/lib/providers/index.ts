@@ -27,3 +27,12 @@ export function getProviders(): Providers {
   }
   return providers;
 }
+
+/** Update the vessel provider's label when the live AIS feed is switched on or off. */
+export function setVesselSourceInfo(info: { name: string; simulated: boolean }): void {
+  const p = getProviders().vessels;
+  if (p instanceof MockVesselProvider) {
+    p.name = info.name;
+    p.simulated = info.simulated;
+  }
+}

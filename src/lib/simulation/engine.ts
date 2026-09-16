@@ -9,6 +9,8 @@ import { makeVoyageNumber, remainingDistanceNm, routeNames } from '@/data/vessel
 import type { SimulationConfig, VesselNav } from './types';
 
 export interface SimulationState {
+  /** 'simulated' = generated fleet moved by the engine; 'ais' = live positions dead-reckoned between polls. */
+  dataSource: 'simulated' | 'ais';
   vessels: Vessel[];
   ports: Port[];
   events: ActivityEvent[];
@@ -41,7 +43,12 @@ const DEFAULT_CONFIG: SimulationConfig = {
   hoursPerTick: 1,
   movement: true,
   activity: true,
+  realTime: false,
 };
+
+/** Live-mode limits. */
+const LIVE_MAX_STEP_HOURS = 0.25;
+const LIVE_NEAR_PORT_NM = 25;
 
 function portIdAt(lane: CompiledLane, waypointIndex: number): string | null {
   for (const [id, idx] of lane.portIndex) if (idx === waypointIndex) return id;
@@ -71,6 +78,10 @@ export class SimulationEngine {
   private eventCounter = 0;
   private onTick: ((vessels: Vessel[]) => void) | undefined;
   private lastAlertTick = -100;
+  /** Snapshot of the simulated fleet while a live source is active. */
+  private simulatedSnapshot: Vessel[] | null = null;
+  /** Zone membership for live vessels (simulated vessels keep it on their nav state). */
+  private liveZones: Map<string, string | null> = new Map();
 
   constructor(options: EngineOptions) {
     const config = { ...DEFAULT_CONFIG, ...options.config };
@@ -78,6 +89,7 @@ export class SimulationEngine {
     this.rng = createRng(7_331);
     this.onTick = options.onTick;
     this.store = createStore<SimulationState>({
+      dataSource: 'simulated',
       vessels: options.vessels,
       ports: options.ports,
       events: [],
@@ -141,25 +153,28 @@ export class SimulationEngine {
   tick(): void {
     const state = this.store.getState();
     const { config } = state;
-    const simTime = state.simTime + config.hoursPerTick * 3_600_000;
+    const now = Date.now();
+    // Live mode advances by real elapsed time (capped so a suspended tab doesn't leap).
+    const hours = config.realTime ? Math.min(LIVE_MAX_STEP_HOURS, Math.max(0, (now - state.lastTickAt) / 3_600_000)) : config.hoursPerTick;
+    const simTime = config.realTime ? now : state.simTime + hours * 3_600_000;
     const tick = state.tick + 1;
     const events: ActivityEvent[] = [];
 
     let vessels = state.vessels;
     let positionsVersion = state.positionsVersion;
     if (config.movement) {
-      vessels = this.updateVesselPositions(state.vessels, simTime, config.hoursPerTick, events);
+      vessels = this.updateVesselPositions(state.vessels, simTime, hours, events);
       positionsVersion++;
     }
 
     let ports = state.ports;
     if (tick % 5 === 0) ports = this.updatePortStatistics(state.ports, vessels, events);
 
-    if (config.activity) this.generateAmbientEvents(vessels, ports, events, tick);
+    if (config.activity && !config.realTime) this.generateAmbientEvents(vessels, ports, events, tick);
 
     const nextEvents = config.activity ? this.mergeEvents(events, state.events) : state.events;
 
-    this.store.setState({ vessels, ports, events: nextEvents, tick, simTime, lastTickAt: Date.now(), positionsVersion });
+    this.store.setState({ vessels, ports, events: nextEvents, tick, simTime, lastTickAt: now, positionsVersion });
     if (tick - this.lastAlertTick >= 5) this.generateAlerts(false);
     this.onTick?.(vessels);
   }
@@ -175,6 +190,7 @@ export class SimulationEngine {
   updateVesselPositions(vessels: Vessel[], simTime: number, hoursPerTick: number, events: ActivityEvent[]): Vessel[] {
     const nowIso = new Date().toISOString();
     return vessels.map((vessel) => {
+      if (vessel.source === 'ais') return this.deadReckon(vessel, hoursPerTick, events);
       const nav = this.nav.get(vessel.id);
       const lane = nav ? LANE_BY_ID.get(nav.laneId) : undefined;
       if (!nav || !lane) return vessel;
@@ -222,6 +238,115 @@ export class SimulationEngine {
         lastUpdated: nowIso,
       };
     });
+  }
+
+  /**
+   * Live vessels: project the last reported position forward along the reported
+   * course at the reported speed (standard AIS dead reckoning) until the next poll.
+   */
+  private deadReckon(vessel: Vessel, hours: number, events: ActivityEvent[]): Vessel {
+    if (vessel.status !== 'underway' || vessel.speed < 0.5 || hours <= 0) return vessel;
+    const pos = destination([vessel.longitude, vessel.latitude], vessel.heading, vessel.speed * hours);
+    const next: Vessel = { ...vessel, longitude: normalizeLongitude(pos[0]), latitude: pos[1] };
+    this.trackLiveZone(next, events);
+    return next;
+  }
+
+  private trackLiveZone(vessel: Vessel, events: ActivityEvent[]): void {
+    const zone = this.zoneFor([vessel.longitude, vessel.latitude]);
+    const zoneId = zone?.id ?? null;
+    const prev = this.liveZones.get(vessel.id);
+    if (prev === undefined) {
+      this.liveZones.set(vessel.id, zoneId);
+      return;
+    }
+    if (zoneId !== prev) {
+      this.liveZones.set(vessel.id, zoneId);
+      if (zone && zone.kind !== 'sea' && vessel.status === 'underway') {
+        this.pushEvent(events, 'zone-enter', `Vessel entered ${zone.name}`, vessel.name, { vessel });
+      }
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Live AIS mode
+  // ---------------------------------------------------------------------------
+
+  /** Switch to live positions: the simulated fleet is parked and restored by exitLiveMode(). */
+  enterLiveMode(): void {
+    const state = this.store.getState();
+    if (state.dataSource === 'ais') return;
+    this.simulatedSnapshot = state.vessels;
+    this.liveZones.clear();
+    this.store.setState({
+      dataSource: 'ais',
+      vessels: [],
+      events: [],
+      alerts: [],
+      simTime: Date.now(),
+      lastTickAt: Date.now(),
+      config: { ...state.config, realTime: true },
+      positionsVersion: state.positionsVersion + 1,
+    });
+    this.onTick?.([]);
+  }
+
+  exitLiveMode(): void {
+    const state = this.store.getState();
+    if (state.dataSource !== 'ais') return;
+    const vessels = this.simulatedSnapshot ?? [];
+    this.simulatedSnapshot = null;
+    this.liveZones.clear();
+    this.store.setState({
+      dataSource: 'simulated',
+      vessels,
+      events: [],
+      simTime: Date.now(),
+      lastTickAt: Date.now(),
+      config: { ...state.config, realTime: false },
+      positionsVersion: state.positionsVersion + 1,
+    });
+    this.generateAlerts(true);
+    this.onTick?.(vessels);
+  }
+
+  /**
+   * Replace the live vessel set with a fresh AIS snapshot. Status transitions
+   * between polls become activity events (arrivals, departures, anchoring).
+   */
+  setLiveVessels(incoming: Vessel[]): void {
+    const state = this.store.getState();
+    if (state.dataSource !== 'ais') return;
+    const previous = new Map(state.vessels.map((v) => [v.id, v]));
+    const events: ActivityEvent[] = [];
+    const first = previous.size === 0;
+    for (const v of incoming) {
+      const before = previous.get(v.id);
+      if (!first && before && before.status !== v.status) {
+        const port = this.nearestPortName([v.longitude, v.latitude]);
+        if (before.status === 'underway' && v.status === 'moored') this.pushEvent(events, 'arrived', `Vessel berthed${port ? ` at ${port}` : ''}`, v.name, { vessel: v });
+        else if (before.status === 'underway' && v.status === 'anchored') this.pushEvent(events, 'arrived', `Vessel anchored${port ? ` off ${port}` : ''}`, v.name, { vessel: v });
+        else if (before.status !== 'underway' && v.status === 'underway') this.pushEvent(events, 'departed', `Vessel departed${port ? ` ${port}` : ''}`, v.name, { vessel: v });
+      }
+      if (!first && !before && v.status === 'underway') this.pushEvent(events, 'destination', 'New AIS contact', v.name, { vessel: v });
+    }
+    // Forget zone state for vessels that dropped out of the feed.
+    const ids = new Set(incoming.map((v) => v.id));
+    for (const id of this.liveZones.keys()) if (!ids.has(id)) this.liveZones.delete(id);
+
+    const nextEvents = this.mergeEvents(events, state.events);
+    this.store.setState({ vessels: incoming, events: nextEvents, positionsVersion: state.positionsVersion + 1, lastTickAt: Date.now() });
+    this.generateAlerts(false);
+    this.onTick?.(incoming);
+  }
+
+  private nearestPortName(pos: LngLat): string | null {
+    let best: { name: string; d: number } | null = null;
+    for (const p of this.store.getState().ports) {
+      const d = distanceNm(pos, [p.longitude, p.latitude]);
+      if (d <= LIVE_NEAR_PORT_NM && (!best || d < best.d)) best = { name: p.name, d };
+    }
+    return best?.name ?? null;
   }
 
   private moveUnderway(
@@ -453,7 +578,8 @@ export class SimulationEngine {
       wait = Math.round(wait * 10) / 10;
 
       const congestion: Congestion = wait >= 16 ? 'high' : wait >= 7 ? 'medium' : 'low';
-      if (congestion !== port.congestion) {
+      // Port statistics are simulated; while a live AIS feed is active their drift must not masquerade as real events.
+      if (congestion !== port.congestion && this.store.getState().dataSource === 'simulated') {
         const increased =
           (port.congestion === 'low' && congestion !== 'low') || (port.congestion === 'medium' && congestion === 'high');
         this.pushEvent(
@@ -533,9 +659,11 @@ export class SimulationEngine {
     const previous = new Map(state.alerts.map((a) => [a.id, a]));
     const alerts: Alert[] = [];
     const now = Date.now();
+    const live = state.dataSource === 'ais';
 
     for (const port of state.ports) {
-      if (port.congestion === 'high') {
+      // Congestion alerts derive from simulated port statistics; only raise them for the simulated fleet.
+      if (!live && port.congestion === 'high') {
         const id = `congestion:${port.id}`;
         alerts.push({
           id,
@@ -615,6 +743,12 @@ export class SimulationEngine {
   getRemainingRoute(vesselId: string): LngLat[] {
     const state = this.store.getState();
     const vessel = state.vessels.find((v) => v.id === vesselId);
+    if (vessel?.source === 'ais') {
+      // Live vessels: great-circle leg from the reported position to the declared destination, when it is a known port.
+      const port = state.ports.find((p) => p.name === vessel.destination);
+      if (!port || vessel.status !== 'underway') return [];
+      return [[vessel.longitude, vessel.latitude], [port.longitude, port.latitude]];
+    }
     const nav = this.nav.get(vesselId);
     const lane = nav ? LANE_BY_ID.get(nav.laneId) : undefined;
     if (!vessel || !nav || !lane) return [];

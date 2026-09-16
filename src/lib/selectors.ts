@@ -1,4 +1,4 @@
-import type { LaneStats, Port, Region, Vessel, VesselStatus } from '@/types';
+import type { LaneStats, Port, Region, Vessel, VesselStatus, VesselType } from '@/types';
 import type { VesselFilters, SpeedBand } from '@/lib/store/ui';
 import { regionForPosition } from '@/data/regions';
 import { LANES } from '@/data/lanes';
@@ -62,10 +62,12 @@ export function vesselRegion(v: Vessel): Region {
 
 export function applyFilters(vessels: Vessel[], f: VesselFilters): Vessel[] {
   const statuses = new Set<VesselStatus>(f.statuses);
+  const types = new Set<VesselType>(f.types);
   const regions = new Set<Region>(f.regions);
   const dest = f.destination.trim().toLowerCase();
   return vessels.filter((v) => {
     if (!statuses.has(v.status)) return false;
+    if (!types.has(v.type)) return false;
     if (!speedInBand(v.speed, f.speed)) return false;
     if (regions.size > 0 && !regions.has(vesselRegion(v))) return false;
     if (dest && !v.destination.toLowerCase().includes(dest) && !v.arrivalPort.toLowerCase().includes(dest)) return false;
@@ -106,6 +108,21 @@ export function computeLaneStats(vessels: Vessel[]): LaneStats[] {
       distanceNm: Math.round(distance),
     };
   });
+}
+
+export function vesselTypeLabel(type: VesselType): string {
+  switch (type) {
+    case 'container':
+      return 'Container ship';
+    case 'cargo':
+      return 'Cargo ship';
+    case 'tanker':
+      return 'Tanker';
+    case 'passenger':
+      return 'Passenger ship';
+    default:
+      return 'Vessel';
+  }
 }
 
 export function statusLabel(status: VesselStatus): string {

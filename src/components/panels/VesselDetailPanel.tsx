@@ -6,10 +6,13 @@ import { ui, useUI } from '@/lib/store/ui';
 import { mapBus } from '@/lib/map/bus';
 import { formatCoordinate } from '@/lib/geo';
 import { formatDateLong, formatDistance, formatHeading, formatRelative, formatSpeed, formatTeu, flagEmoji, formatNumber } from '@/lib/formatting';
-import { Button, DemoTag, KeyValue, PanelHeader, RouteList, Skeleton, StatusBadge, EmptyState } from '@/components/ui';
+import { Button, SourceTag, KeyValue, PanelHeader, RouteList, Skeleton, StatusBadge, EmptyState } from '@/components/ui';
 import { CONTAINERS } from '@/data/containers';
 import { PORTS } from '@/data/ports';
 import { useNow } from '@/lib/hooks';
+import { useLiveFeed } from '@/lib/live';
+import { vesselTypeLabel } from '@/lib/selectors';
+import { getEngine } from '@/lib/simulation';
 
 export function VesselDetailPanel({ id, onBack, onClose }: { id: string; onBack?: () => void; onClose: () => void }) {
   const { loading, data } = useAsync(() => getProviders().vessels.getVessel(id), [id], 260);
@@ -18,9 +21,12 @@ export function VesselDetailPanel({ id, onBack, onClose }: { id: string; onBack?
   const distanceUnit = useSettings((s) => s.distanceUnit);
   const routeShown = useUI((s) => s.routeVesselId === id);
   const now = useNow(5000);
+  const sourceName = useLiveFeed((s) => s.sourceName);
 
   const vessel = live ?? data;
-  const containers = vessel ? CONTAINERS.filter((c) => c.vesselName === vessel.name) : [];
+  const isLive = vessel?.source === 'ais';
+  const containers = vessel && !isLive ? CONTAINERS.filter((c) => c.vesselName === vessel.name) : [];
+  const routeAvailable = vessel ? getEngine().getRemainingRoute(vessel.id).length > 1 : false;
 
   return (
     <div className="flex h-full flex-col">
@@ -40,16 +46,17 @@ export function VesselDetailPanel({ id, onBack, onClose }: { id: string; onBack?
             <div className="min-w-0 flex-1">
               <h3 className="truncate text-[17px] font-semibold leading-tight text-ink">{vessel.name}</h3>
               <p className="text-[12px] text-muted">
-                Container ship · {vessel.operator}
+                {vesselTypeLabel(vessel.type)}
+                {vessel.operator ? ` · ${vessel.operator}` : vessel.callSign ? ` · Call sign ${vessel.callSign}` : ''}
               </p>
               <p className="mt-0.5 text-[12px] text-muted">
-                <span aria-hidden>{flagEmoji(vessel.flagCode)}</span> {vessel.flag}
+                <span aria-hidden>{vessel.flagCode ? flagEmoji(vessel.flagCode) : ''}</span> {vessel.flag}
               </p>
             </div>
           </div>
 
           <div className="mt-4 grid grid-cols-2 gap-3">
-            <KeyValue label="IMO" value={vessel.imo} mono />
+            <KeyValue label="IMO" value={vessel.imo || '—'} mono />
             <KeyValue label="MMSI" value={vessel.mmsi} mono />
           </div>
 
@@ -71,19 +78,29 @@ export function VesselDetailPanel({ id, onBack, onClose }: { id: string; onBack?
             <KeyValue label="Heading" value={formatHeading(vessel.heading)} mono />
           </div>
 
-          <div className="mt-5">
-            <div className="label-caps mb-2">Voyage {vessel.voyage}</div>
-            <RouteList stops={vessel.route} current={vessel.status === 'moored' ? 0 : vessel.route.indexOf(vessel.destination)} />
-          </div>
+          {vessel.route.length > 1 ? (
+            <div className="mt-5">
+              <div className="label-caps mb-2">Voyage {vessel.voyage}</div>
+              <RouteList stops={vessel.route} current={vessel.status === 'moored' ? 0 : vessel.route.indexOf(vessel.destination)} />
+            </div>
+          ) : (
+            <div className="mt-5">
+              <KeyValue label="Declared destination (AIS)" value={vessel.destination || 'Not reported'} />
+            </div>
+          )}
 
           <div className="mt-2 grid grid-cols-2 gap-3">
-            <KeyValue label={vessel.status === 'moored' ? 'ETD' : 'ETA'} value={formatDateLong(vessel.eta)} />
-            <KeyValue label="Voyage distance" value={formatDistance(vessel.voyageDistanceNm, distanceUnit)} mono />
+            <KeyValue label={vessel.status === 'moored' && !isLive ? 'ETD' : 'ETA'} value={vessel.eta ? formatDateLong(vessel.eta) : 'Not reported'} />
+            {vessel.voyageDistanceNm > 0 ? (
+              <KeyValue label="Voyage distance" value={formatDistance(vessel.voyageDistanceNm, distanceUnit)} mono />
+            ) : (
+              <KeyValue label="Last AIS report" value={formatRelative(new Date(vessel.lastUpdated).getTime(), now)} />
+            )}
           </div>
 
           <div className="mt-4 grid grid-cols-2 gap-3">
-            <KeyValue label="Capacity" value={formatTeu(vessel.capacityTEU)} mono />
-            <KeyValue label="Dimensions" value={`${formatNumber(vessel.vesselLength)} × ${vessel.vesselWidth} m`} mono />
+            <KeyValue label="Capacity" value={vessel.capacityTEU > 0 ? formatTeu(vessel.capacityTEU) : 'Not reported'} mono={vessel.capacityTEU > 0} />
+            <KeyValue label="Dimensions" value={vessel.vesselLength > 0 ? `${formatNumber(vessel.vesselLength)} × ${vessel.vesselWidth} m` : 'Not reported'} mono={vessel.vesselLength > 0} />
           </div>
 
           {containers.length > 0 && (
@@ -111,6 +128,8 @@ export function VesselDetailPanel({ id, onBack, onClose }: { id: string; onBack?
               variant={routeShown ? 'primary' : 'outline'}
               icon={Route}
               block
+              disabled={!routeAvailable}
+              title={routeAvailable ? undefined : 'No route available: the declared destination is not a known port'}
               onClick={() => ui.showRoute(routeShown ? null : vessel.id)}
             >
               {routeShown ? 'Hide route' : 'View route'}
@@ -121,7 +140,7 @@ export function VesselDetailPanel({ id, onBack, onClose }: { id: string; onBack?
           </div>
 
           <div className="mt-4 flex items-center justify-between border-t hairline pt-3">
-            <DemoTag />
+            <SourceTag source={vessel.source} sourceName={isLive ? sourceName : null} />
             {PORTS.some((p) => p.name === vessel.destination) && (
               <button
                 type="button"
