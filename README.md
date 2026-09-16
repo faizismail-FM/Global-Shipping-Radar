@@ -208,7 +208,14 @@ Implement it against a carrier API, a container-tracking aggregator, an EDI feed
 
 ## 11. Production deployment
 
-The site is fully static:
+The live demo runs on Vercel at https://global-shipping-radar.vercel.app. The Vercel project is connected to this GitHub repository, so:
+
+- every merge to `main` deploys production automatically;
+- every pull request gets its own preview deployment, linked in a PR comment.
+
+`vercel.json` pins the build settings (Astro preset, `npm ci`, `npm run build`, output `dist`), so Git-triggered builds and one-off CLI deploys (`npx vercel deploy --prod`) behave identically.
+
+The site is fully static and can be hosted anywhere:
 
 ```bash
 npm run build      # outputs ./dist
