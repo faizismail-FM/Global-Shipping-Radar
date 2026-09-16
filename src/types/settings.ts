@@ -2,7 +2,7 @@ export type Theme = 'dark' | 'light';
 export type SpeedUnit = 'kn' | 'kmh';
 export type DistanceUnit = 'nm' | 'km';
 /** Vessel data source: the built-in simulation or a live AIS feed. */
-export type DataSource = 'simulated' | 'digitraffic';
+export type DataSource = 'simulated' | 'digitraffic' | 'aisstream';
 
 export interface Settings {
   theme: Theme;

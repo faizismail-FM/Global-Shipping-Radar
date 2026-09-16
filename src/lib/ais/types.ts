@@ -14,5 +14,7 @@ export interface LiveAISSource {
   /** Geographic coverage, [west, south, east, north], and a label for it. */
   readonly coverage: { bounds: [number, number, number, number]; label: string };
   readonly pollIntervalMs: number;
+  /** True when results depend on the map viewport (the feed re-polls after the map moves). */
+  readonly viewportSensitive?: boolean;
   fetchVessels(signal?: AbortSignal): Promise<Vessel[]>;
 }

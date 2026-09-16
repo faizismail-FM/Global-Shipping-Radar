@@ -14,7 +14,7 @@ export const DEFAULT_SETTINGS: Settings = {
   speedUnit: 'kn',
   distanceUnit: 'nm',
   sidebarCollapsed: false,
-  dataSource: (import.meta.env.PUBLIC_DEFAULT_DATA_SOURCE === 'digitraffic' ? 'digitraffic' : 'simulated'),
+  dataSource: (['digitraffic', 'aisstream'].includes(import.meta.env.PUBLIC_DEFAULT_DATA_SOURCE ?? '') ? (import.meta.env.PUBLIC_DEFAULT_DATA_SOURCE as 'digitraffic' | 'aisstream') : 'simulated'),
 };
 
 function load(): Settings {

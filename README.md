@@ -152,9 +152,11 @@ Copy `.env.example` to `.env`. All variables are optional.
 | `PUBLIC_MAP_STYLE_URL` | CARTO Dark Matter | MapLibre style JSON URL for the dark theme. `local` forces the bundled offline style. |
 | `PUBLIC_MAP_STYLE_URL_LIGHT` | CARTO Positron | Style URL for the light theme. |
 | `PUBLIC_SIM_INTERVAL_MS` | `2000` | Default simulation update interval in milliseconds (users can change it in the UI). |
-| `PUBLIC_DEFAULT_DATA_SOURCE` | `simulated` | `simulated` or `digitraffic`: which vessel data source new visitors start with. |
+| `PUBLIC_DEFAULT_DATA_SOURCE` | `simulated` | `simulated`, `digitraffic` or `aisstream`: which vessel data source new visitors start with. |
+| `AISSTREAM_API_KEY` | – | **Server-only** (no `PUBLIC_` prefix). Enables the Global AIS relay. Create a free key at aisstream.io and set it in Vercel → Project → Settings → Environment Variables. |
+| `AISSTREAM_WS_URL` | AISStream's endpoint | Server-only override of the WebSocket URL, used with the mock server in tests. |
 
-Reserved for future real-data providers (not read by the MVP): `AIS_API_URL`, `AIS_API_KEY`, `CONTAINER_TRACKING_API_URL`, `CONTAINER_TRACKING_API_KEY`.
+Reserved for future providers (not read yet): `CONTAINER_TRACKING_API_URL`, `CONTAINER_TRACKING_API_KEY`.
 
 Example `.env`:
 
@@ -178,7 +180,24 @@ Live mode is built on a small pluggable layer in `src/lib/ais/` and `src/lib/liv
 
 What is real in live mode: positions, course, speed, heading, navigational status, name, IMO, MMSI, call sign, flag, dimensions, declared destination and ETA, the activity feed's arrivals/departures/zone entries, and the "high traffic" alerts. What stays simulated (and is labelled): port statistics, port congestion alerts, container tracking, lane statistics.
 
-Coverage is the Baltic Sea because that is where the Finnish AIS network listens. To go global, implement another `LiveAISSource` (for example a small server relay in front of [AISStream.io](https://aisstream.io)'s WebSocket, so the API key never reaches the browser) and register it in `getLiveSource()` in `src/lib/ais/index.ts`; the UI needs no changes. Set `PUBLIC_DEFAULT_DATA_SOURCE=digitraffic` to start in live mode.
+Two live sources ship:
+
+| Source | Coverage | Key | How it reaches the browser |
+| --- | --- | --- | --- |
+| **Baltic AIS** — `DigitrafficAISSource` | Baltic Sea (Finnish AIS network) | none | Browser calls Digitraffic directly (CORS-enabled). |
+| **Global AIS** — `AISStreamSource` | Worldwide, vessels in the current map view | `AISSTREAM_API_KEY` (free at [aisstream.io](https://aisstream.io)) | Browser calls the server relay `GET /api/ais/aisstream?bbox=w,s,e,n`, a Vercel serverless function (`src/pages/api/ais/aisstream.ts`, `@astrojs/vercel` adapter). The relay opens AISStream's WebSocket with the key, subscribes to the bounding box, collects `PositionReport` and `ShipStaticData` messages for ~6 s and returns a JSON snapshot. Responses are CDN-cached for 15 s and bounding boxes are snapped to a 5° grid so nearby viewers share connections (AISStream allows 3 concurrent connections per account). The client accumulates tracks across polls (15 min TTL) and re-polls 1.5 s after the map stops moving, so panning loads new areas. A world view is capped to a 40°×25° window around the map centre. |
+
+Set `PUBLIC_DEFAULT_DATA_SOURCE=digitraffic` or `aisstream` to start visitors in live mode. Without `AISSTREAM_API_KEY` the Global AIS option stays visible but reports "not configured" in the live status pill.
+
+**Adding another source.** Implement `LiveAISSource` and register it in `getLiveSource()` (`src/lib/ais/index.ts`); the UI, engine and feed service need no changes. Mark it `viewportSensitive` if results depend on the map view.
+
+**Local testing of the relay.** `scripts/mock-aisstream.mjs` is a stand-in for AISStream's WebSocket:
+
+```bash
+node scripts/mock-aisstream.mjs 9123
+AISSTREAM_API_KEY=test-key AISSTREAM_WS_URL=ws://127.0.0.1:9123 npm run dev
+curl "http://localhost:4321/api/ais/aisstream?bbox=-6,48,10,56"
+```
 
 **Attribution.** Digitraffic data is licensed CC BY 4.0. The UI shows "AIS data: Fintraffic / Digitraffic, CC BY 4.0" in the live status pill and the Simulation panel; keep that when you deploy.
 
@@ -242,7 +261,8 @@ npm run build      # outputs ./dist
 
 Deploy `dist/` to any static host (Netlify, Vercel, Cloudflare Pages, S3 + CloudFront, GitHub Pages, nginx). Notes:
 
-- Set `PUBLIC_*` variables at build time; they are inlined into the bundle.
+- Set `PUBLIC_*` variables at build time; they are inlined into the bundle. `AISSTREAM_API_KEY` is read at request time by the relay function.
+- The build uses `@astrojs/vercel`: pages are static, and only `src/pages/api/*` routes become serverless functions (Node 22, 30 s max duration). Other static hosts can still serve the site, but the Global AIS relay needs a Node runtime there.
 - The MapLibre web worker is emitted as a separate asset in `dist/_astro/`; make sure your host serves `.js` files with a JavaScript MIME type (all mainstream hosts do).
 - If you self-host basemap tiles, point `PUBLIC_MAP_STYLE_URL` at your style and allow the tile/glyph/sprite hosts in any Content-Security-Policy.
 - The bundled fallback outlines (`public/data/world-110m.geojson`, ~170 kB) are only fetched when the remote basemap fails.

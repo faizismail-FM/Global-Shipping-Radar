@@ -1,5 +1,6 @@
 import type { DataSource } from '@/types';
-import { getLiveSource } from '@/lib/ais';
+import { getLiveSource, AISSTREAM_DEFAULT_BOUNDS } from '@/lib/ais';
+import { viewportStore } from '@/lib/map/viewport';
 import { getEngine } from '@/lib/simulation';
 import { setVesselSourceInfo } from '@/lib/providers';
 import { mapBus } from '@/lib/map/bus';
@@ -24,8 +25,19 @@ export async function applyDataSource(source: DataSource, options: { flyToCovera
   }
   setVesselSourceInfo({ name: live.name, simulated: false });
   if (options.flyToCoverage !== false) {
-    const [w, s, e, n] = live.coverage.bounds;
-    mapBus.dispatch({ type: 'fitBounds', bounds: [[w, s], [e, n]], padding: 40 });
+    // Viewport-driven sources keep the user's view unless it is a world view, where a busy default area is used.
+    const zoomedOut = viewportStore.getState().zoom < 3.2;
+    if (live.viewportSensitive) {
+      if (zoomedOut) {
+        // Seed the viewport so the first poll already targets the default area while the map flies there.
+        viewportStore.setState({ bounds: AISSTREAM_DEFAULT_BOUNDS, zoom: 5 });
+        const [w, s, e, n] = AISSTREAM_DEFAULT_BOUNDS;
+        mapBus.dispatch({ type: 'fitBounds', bounds: [[w, s], [e, n]], padding: 40 });
+      }
+    } else {
+      const [w, s, e, n] = live.coverage.bounds;
+      mapBus.dispatch({ type: 'fitBounds', bounds: [[w, s], [e, n]], padding: 40 });
+    }
   }
   await liveFeed.start(live, engine);
 }
