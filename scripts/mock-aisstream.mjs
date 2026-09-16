@@ -16,8 +16,10 @@ wss.on('connection', (ws) => {
     if (sub.APIKey !== 'test-key') { send(ws, ({ error: 'Api Key Is Not Valid' })); ws.close(1000); return; }
     const [[lat1, lon1], [lat2, lon2]] = sub.BoundingBoxes[0];
     const s = Math.min(lat1, lat2), n = Math.max(lat1, lat2), w = Math.min(lon1, lon2), e = Math.max(lon1, lon2);
-    const fleet = Array.from({ length: 40 }, (_, i) => ({
-      mmsi: 200000000 + i, name: NAMES[i % NAMES.length] + (i >= NAMES.length ? ` ${i}` : ''),
+    // Fleet size varies with the subscribed area so panning changes the vessel count.
+    const size = 30 + (Math.round(Math.abs(w) + Math.abs(s) + Math.abs(e) + Math.abs(n)) % 41);
+    const fleet = Array.from({ length: size }, (_, i) => ({
+      mmsi: 200000000 + (Math.round(Math.abs(w) + Math.abs(s) * 3 + Math.abs(e) * 7 + Math.abs(n) * 11) % 900) * 1000 + i, name: NAMES[i % NAMES.length] + (i >= NAMES.length ? ` ${i}` : ''),
       lat: s + (n - s) * ((i * 37) % 100) / 100, lon: w + (e - w) * ((i * 61) % 100) / 100,
       sog: 8 + (i % 12), cog: (i * 29) % 360, nav: i % 7 === 0 ? 1 : i % 11 === 0 ? 5 : 0, type: i % 3 === 0 ? 80 : 70,
     }));

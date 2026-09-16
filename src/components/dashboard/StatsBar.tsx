@@ -5,8 +5,8 @@ import { formatNumber } from '@/lib/formatting';
 import { cn } from '@/lib/cn';
 import { ui } from '@/lib/store/ui';
 
-function Stat({ label, value, tone, onClick }: { label: string; value: number; tone?: 'accent' | 'warning' | 'danger'; onClick?: () => void }) {
-  const animated = useAnimatedNumber(value, 700);
+function Stat({ label, value, tone, onClick, duration }: { label: string; value: number; tone?: 'accent' | 'warning' | 'danger'; onClick?: () => void; duration: number }) {
+  const animated = useAnimatedNumber(value, duration);
   return (
     <button
       type="button"
@@ -25,15 +25,19 @@ export function StatsBar() {
   const vessels = useSimulation((s) => s.vessels);
   const ports = useSimulation((s) => s.ports);
   const stats = useMemo(() => computeFleetStats(vessels, ports), [vessels, ports]);
+  // Live AIS snapshots replace the whole fleet at once; counting up from the
+  // previous total reads as stale data, so update instantly in live mode.
+  const live = useSimulation((s) => s.dataSource === 'ais');
+  const duration = live ? 0 : 700;
 
   return (
     <div className="glass-strong pointer-events-auto flex items-stretch divide-x divide-[var(--border)] overflow-x-auto rounded-lg" role="status" aria-label="Fleet statistics">
-      <Stat label="Vessels online" value={stats.total} tone="accent" onClick={() => ui.setView('vessels')} />
-      <Stat label="At sea" value={stats.atSea} onClick={() => { ui.setFilters({ statuses: ['underway'] }); ui.setView('vessels'); }} />
-      <Stat label="In port" value={stats.inPort} onClick={() => { ui.setFilters({ statuses: ['moored'] }); ui.setView('vessels'); }} />
-      <Stat label="Anchored" value={stats.anchored} onClick={() => { ui.setFilters({ statuses: ['anchored'] }); ui.setView('vessels'); }} />
-      <Stat label="Delayed" value={stats.delayed} tone="warning" onClick={() => { ui.setFilters({ statuses: ['delayed'] }); ui.setView('vessels'); }} />
-      <Stat label="Ports monitored" value={stats.ports} onClick={() => ui.setView('ports')} />
+      <Stat label="Vessels online" value={stats.total} tone="accent" duration={duration} onClick={() => ui.setView('vessels')} />
+      <Stat label="At sea" duration={duration} value={stats.atSea} onClick={() => { ui.setFilters({ statuses: ['underway'] }); ui.setView('vessels'); }} />
+      <Stat label="In port" duration={duration} value={stats.inPort} onClick={() => { ui.setFilters({ statuses: ['moored'] }); ui.setView('vessels'); }} />
+      <Stat label="Anchored" duration={duration} value={stats.anchored} onClick={() => { ui.setFilters({ statuses: ['anchored'] }); ui.setView('vessels'); }} />
+      <Stat label="Delayed" duration={duration} value={stats.delayed} tone="warning" onClick={() => { ui.setFilters({ statuses: ['delayed'] }); ui.setView('vessels'); }} />
+      <Stat label="Ports monitored" duration={duration} value={stats.ports} onClick={() => ui.setView('ports')} />
     </div>
   );
 }
