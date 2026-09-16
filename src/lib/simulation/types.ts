@@ -28,4 +28,6 @@ export interface SimulationConfig {
   movement: boolean;
   /** Whether activity events are generated. */
   activity: boolean;
+  /** Live mode: advance by real elapsed time instead of `hoursPerTick`. */
+  realTime: boolean;
 }

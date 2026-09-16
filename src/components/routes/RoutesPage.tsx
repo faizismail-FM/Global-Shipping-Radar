@@ -15,11 +15,17 @@ export function RoutesPage() {
   const stats = useMemo(() => computeLaneStats(vessels), [vessels]);
   const distanceUnit = useSettings((s) => s.distanceUnit);
   const highlighted = useUI((s) => s.highlightedLaneId);
+  const isLive = useSimulation((s) => s.dataSource === 'ais');
 
   const totals = stats.reduce((acc, s) => ({ vessels: acc.vessels + s.vessels, active: acc.active + s.active, delayed: acc.delayed + s.delayed }), { vessels: 0, active: 0, delayed: 0 });
 
   return (
     <PageShell title="Routes" icon={Route} description={`${stats.length} major shipping lanes · ${formatNumber(totals.active)} vessels underway · ${formatNumber(totals.delayed)} delayed`}>
+      {isLive && (
+        <p className="mx-4 mt-4 rounded-md border border-warning/30 bg-warning-soft px-3 py-2 text-[12px] text-ink">
+          Live AIS vessels are not assigned to shipping lanes, so lane statistics are empty while the live feed is active. Switch to the simulated fleet to see lane figures.
+        </p>
+      )}
       <div className="grid grid-cols-1 gap-3 p-4 md:grid-cols-2 xl:grid-cols-3">
         {stats.map((s) => {
           const isActive = highlighted === s.lane.id;

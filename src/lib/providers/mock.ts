@@ -14,8 +14,9 @@ const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, 
  * provider would not have that and the engine would simply not move vessels.
  */
 export class MockVesselProvider implements VesselDataProvider {
-  readonly name = 'Simulated fleet';
-  readonly simulated = true;
+  /** Reflects the active data source (a live AIS feed can replace the fleet at runtime). */
+  name = 'Simulated fleet';
+  simulated = true;
   private fleet: GeneratedFleet | null = null;
 
   /** Latest vessel snapshot, updated by the simulation engine. */

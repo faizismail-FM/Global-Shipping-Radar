@@ -7,6 +7,7 @@ import { GlobalSearch } from '@/components/search/GlobalSearch';
 
 export function TopBar() {
   const running = useSimulation((s) => s.running);
+  const dataSource = useSimulation((s) => s.dataSource);
   const overlay = useUI((s) => s.overlay);
   const filtersActive = useUI((s) => isFilterActive(s.filters));
 
@@ -28,10 +29,10 @@ export function TopBar() {
           'flex shrink-0 items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-semibold tracking-[0.16em]',
           running ? 'border-danger/40 text-danger' : 'border-warning/40 text-warning',
         )}
-        title={running ? 'Live simulation running' : 'Simulation paused'}
+        title={dataSource === 'ais' ? 'Live AIS feed' : running ? 'Live simulation running' : 'Simulation paused'}
       >
         <span className={cn('h-1.5 w-1.5 rounded-full', running ? 'bg-danger animate-live' : 'bg-warning')} />
-        {running ? 'LIVE' : 'PAUSED'}
+        {dataSource === 'ais' ? 'LIVE AIS' : running ? 'LIVE' : 'PAUSED'}
       </button>
 
       <div className="mx-1 min-w-0 flex-1 sm:mx-2">

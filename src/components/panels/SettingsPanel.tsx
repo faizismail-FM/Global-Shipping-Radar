@@ -2,6 +2,7 @@ import { Settings, Moon, Sun, RotateCcw } from 'lucide-react';
 import { resetSettings, updateSettings, useSettings } from '@/lib/store/settings';
 import { getEngine } from '@/lib/simulation';
 import { PanelHeader, Segmented, Toggle } from '@/components/ui';
+import { DataSourceControl } from './DataSourceControl';
 
 export function SettingsPanel({ onClose }: { onClose: () => void }) {
   const settings = useSettings((s) => s);
@@ -29,6 +30,11 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
             onChange={(theme) => updateSettings({ theme })}
             label="Theme"
           />
+        </section>
+
+        <section className="mt-5">
+          <div className="label-caps mb-1.5">Vessel data source</div>
+          <DataSourceControl />
         </section>
 
         <section className="mt-5">

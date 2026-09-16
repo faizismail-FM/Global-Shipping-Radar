@@ -234,6 +234,7 @@ export function generateFleet(options: FleetOptions = {}): GeneratedFleet {
         imo,
         mmsi: makeMmsi(rng, flagCode),
         type: 'container',
+        source: 'simulated',
         flag,
         flagCode,
         latitude: Math.round(pos[1] * 1e5) / 1e5,

@@ -61,6 +61,16 @@ const SEEDS: PortSeed[] = [
   { id: 'piraeus', name: 'Piraeus', country: 'Greece', countryCode: 'GR', region: 'Europe', locode: 'GRPIR', lat: 37.94, lng: 23.62, tier: 'large', congestion: 'low' },
   { id: 'genoa', name: 'Genoa', country: 'Italy', countryCode: 'IT', region: 'Europe', locode: 'ITGOA', lat: 44.4, lng: 8.92, tier: 'medium', congestion: 'low' },
   { id: 'gdansk', name: 'Gdańsk', country: 'Poland', countryCode: 'PL', region: 'Europe', locode: 'PLGDN', lat: 54.4, lng: 18.68, tier: 'medium', congestion: 'low' },
+  // Baltic (coverage area of the live Digitraffic AIS feed)
+  { id: 'helsinki', name: 'Helsinki', country: 'Finland', countryCode: 'FI', region: 'Europe', locode: 'FIHEL', lat: 60.2, lng: 25.2, tier: 'medium', congestion: 'low' },
+  { id: 'kotka', name: 'Kotka', country: 'Finland', countryCode: 'FI', region: 'Europe', locode: 'FIKTK', lat: 60.45, lng: 26.94, tier: 'medium', congestion: 'low' },
+  { id: 'turku', name: 'Turku', country: 'Finland', countryCode: 'FI', region: 'Europe', locode: 'FITKU', lat: 60.43, lng: 22.22, tier: 'medium', congestion: 'low' },
+  { id: 'rauma', name: 'Rauma', country: 'Finland', countryCode: 'FI', region: 'Europe', locode: 'FIRAU', lat: 61.13, lng: 21.46, tier: 'medium', congestion: 'low' },
+  { id: 'tallinn', name: 'Tallinn', country: 'Estonia', countryCode: 'EE', region: 'Europe', locode: 'EETLL', lat: 59.45, lng: 24.77, tier: 'medium', congestion: 'low' },
+  { id: 'stockholm', name: 'Stockholm', country: 'Sweden', countryCode: 'SE', region: 'Europe', locode: 'SESTO', lat: 59.33, lng: 18.1, tier: 'medium', congestion: 'low' },
+  { id: 'riga', name: 'Riga', country: 'Latvia', countryCode: 'LV', region: 'Europe', locode: 'LVRIX', lat: 57.02, lng: 24.1, tier: 'medium', congestion: 'low' },
+  { id: 'klaipeda', name: 'Klaipėda', country: 'Lithuania', countryCode: 'LT', region: 'Europe', locode: 'LTKLJ', lat: 55.7, lng: 21.12, tier: 'medium', congestion: 'low' },
+  { id: 'st-petersburg', name: 'St Petersburg', country: 'Russia', countryCode: 'RU', region: 'Europe', locode: 'RULED', lat: 59.9, lng: 30.2, tier: 'medium', congestion: 'medium' },
 
   // Africa
   { id: 'tanger-med', name: 'Tanger Med', country: 'Morocco', countryCode: 'MA', region: 'Africa', locode: 'MAPTM', lat: 35.88, lng: -5.5, tier: 'large', congestion: 'low' },

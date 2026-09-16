@@ -34,6 +34,11 @@ export const ZONES: MaritimeZone[] = [
   { id: 'arabian-sea', name: 'Arabian Sea', kind: 'sea', longitude: 64.0, latitude: 14.0, radiusNm: 420, zoom: 4.5 },
   { id: 'north-atlantic', name: 'North Atlantic', kind: 'sea', longitude: -35.0, latitude: 46.0, radiusNm: 600, zoom: 4 },
   { id: 'north-pacific', name: 'North Pacific', kind: 'sea', longitude: -175.0, latitude: 44.0, radiusNm: 800, zoom: 3.5 },
+  // Baltic (live AIS coverage)
+  { id: 'gulf-of-finland', name: 'Gulf of Finland', kind: 'passage', longitude: 25.5, latitude: 59.85, radiusNm: 70, zoom: 6.5 },
+  { id: 'aland-sea', name: 'Åland Sea', kind: 'passage', longitude: 19.3, latitude: 60.0, radiusNm: 40, zoom: 7 },
+  { id: 'gulf-of-riga', name: 'Gulf of Riga', kind: 'sea', longitude: 23.5, latitude: 57.7, radiusNm: 60, zoom: 6.5 },
+  { id: 'oresund', name: 'Øresund', kind: 'strait', longitude: 12.7, latitude: 55.75, radiusNm: 30, zoom: 8 },
 ];
 
 export const ZONE_BY_ID: ReadonlyMap<string, MaritimeZone> = new Map(ZONES.map((z) => [z.id, z]));

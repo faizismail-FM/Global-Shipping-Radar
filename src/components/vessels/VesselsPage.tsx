@@ -26,6 +26,7 @@ function focusVessel(v: Vessel) {
 export function VesselsPage() {
   const { loading } = useAsync(() => getProviders().vessels.getVessels(), [], 350);
   const vessels = useSimulation((s) => s.vessels);
+  const isLive = useSimulation((s) => s.dataSource === 'ais');
   const filters = useUI((s) => s.filters);
   const portId = useUI((s) => s.vesselsPagePort);
   const laneId = useUI((s) => s.vesselsPageLane);
@@ -69,7 +70,7 @@ export function VesselsPage() {
     <PageShell
       title="Vessels"
       icon={Ship}
-      description={`${formatNumber(rows.length)} of ${formatNumber(vessels.length)} simulated container vessels`}
+      description={`${formatNumber(rows.length)} of ${formatNumber(vessels.length)} ${isLive ? 'live AIS vessels (cargo and tankers)' : 'simulated container vessels'}`}
       actions={
         <>
           <div className="relative w-full sm:w-56">
@@ -156,13 +157,13 @@ export function VesselsPage() {
                     className="cursor-pointer border-b hairline transition-colors hover:bg-accent-soft/60 focus-visible:bg-accent-soft/60"
                   >
                     <td className="px-3 py-2 font-medium text-ink">{v.name}</td>
-                    <td className="num px-3 py-2 text-muted">{v.imo}</td>
+                    <td className="num px-3 py-2 text-muted">{v.imo || '—'}</td>
                     <td className="px-3 py-2"><StatusBadge status={v.status} /></td>
                     <td className="num px-3 py-2 text-right text-ink">{formatSpeed(v.speed, speedUnit)}</td>
-                    <td className="px-3 py-2 text-ink">{v.destination}</td>
-                    <td className="num px-3 py-2 text-muted">{formatDateShort(v.eta)}</td>
-                    <td className="max-w-[200px] truncate px-3 py-2 text-muted">{v.operator}</td>
-                    <td className="num px-3 py-2 text-right text-muted">{formatNumber(v.capacityTEU)}</td>
+                    <td className="px-3 py-2 text-ink">{v.destination || '—'}</td>
+                    <td className="num px-3 py-2 text-muted">{v.eta ? formatDateShort(v.eta) : '—'}</td>
+                    <td className="max-w-[200px] truncate px-3 py-2 text-muted">{v.operator || (v.callSign ? `Call sign ${v.callSign}` : '—')}</td>
+                    <td className="num px-3 py-2 text-right text-muted">{v.capacityTEU > 0 ? formatNumber(v.capacityTEU) : '—'}</td>
                     <td className="num px-3 py-2 text-right text-faint">{formatRelative(new Date(v.lastUpdated).getTime(), now)}</td>
                   </tr>
                 ))}
@@ -181,10 +182,10 @@ export function VesselsPage() {
                       <StatusBadge status={v.status} />
                     </div>
                     <div className="mt-0.5 truncate text-[11px] text-muted">
-                      IMO <span className="num">{v.imo}</span> · {v.operator}
+                      IMO <span className="num">{v.imo || '—'}</span> · {v.operator || (v.callSign ? `Call sign ${v.callSign}` : 'Live AIS')}
                     </div>
                     <div className="mt-0.5 text-[11px] text-muted">
-                      → {v.destination} · ETA <span className="num">{formatDateShort(v.eta)}</span>
+                      → {v.destination || '—'} · ETA <span className="num">{v.eta ? formatDateShort(v.eta) : '—'}</span>
                     </div>
                   </div>
                   <div className={cn('num text-right text-[12px]', v.status === 'underway' ? 'text-accent' : 'text-faint')}>{formatSpeed(v.speed, speedUnit)}</div>

@@ -76,6 +76,7 @@ export function Sidebar() {
   const running = useSimulation((s) => s.running);
   const overlay = useUI((s) => s.overlay);
   const collapsed = useSettings((s) => s.sidebarCollapsed);
+  const dataSource = useSimulation((s) => s.dataSource);
 
   const runningDot = <span className={cn('block h-2 w-2 rounded-full', running ? 'bg-success animate-live' : 'bg-warning')} aria-label={running ? 'running' : 'paused'} />;
 
@@ -134,8 +135,8 @@ export function Sidebar() {
         <div className="border-t hairline px-4 py-3">
           <div className="label-caps">Data source</div>
           <div className="mt-1 flex items-center gap-2 text-[12px] text-muted">
-            <span className="h-1.5 w-1.5 rounded-full bg-warning" aria-hidden />
-            Simulated demo data
+            <span className={cn('h-1.5 w-1.5 rounded-full', dataSource === 'ais' ? 'bg-success animate-live' : 'bg-warning')} aria-hidden />
+            {dataSource === 'ais' ? 'Live AIS · ports simulated' : 'Simulated demo data'}
           </div>
         </div>
       )}

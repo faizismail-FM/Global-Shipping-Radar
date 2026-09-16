@@ -2,7 +2,7 @@
 
 A live, interactive global maritime logistics dashboard: a cinematic world map of container vessels moving along the world's major shipping lanes, with vessel search, filters, vessel and port details, routes, statistics, alerts, a live activity feed and container tracking.
 
-> **Simulated data.** The first version runs entirely on a built-in simulation engine. Vessel names and operators are realistic, but every position, voyage, ETA, port statistic, event and container record is generated locally for demonstration. Nothing shown reflects the real-world location of any ship. The UI labels simulated data throughout.
+> **Two data modes.** By default the dashboard runs on a built-in simulation: vessel names and operators are realistic, but every position, voyage, ETA, port statistic, event and container record is generated locally for demonstration. Switch **Vessel data source** to **Live AIS · Baltic** (Simulation or Settings panel) and vessel positions come from a real AIS feed (Fintraffic / Digitraffic, Finnish AIS network, CC BY 4.0). Port statistics and container records stay simulated in both modes and the UI labels every record with its provenance.
 
 ![Global Shipping Radar](docs/screenshot-overview.png)
 
@@ -152,6 +152,7 @@ Copy `.env.example` to `.env`. All variables are optional.
 | `PUBLIC_MAP_STYLE_URL` | CARTO Dark Matter | MapLibre style JSON URL for the dark theme. `local` forces the bundled offline style. |
 | `PUBLIC_MAP_STYLE_URL_LIGHT` | CARTO Positron | Style URL for the light theme. |
 | `PUBLIC_SIM_INTERVAL_MS` | `2000` | Default simulation update interval in milliseconds (users can change it in the UI). |
+| `PUBLIC_DEFAULT_DATA_SOURCE` | `simulated` | `simulated` or `digitraffic`: which vessel data source new visitors start with. |
 
 Reserved for future real-data providers (not read by the MVP): `AIS_API_URL`, `AIS_API_KEY`, `CONTAINER_TRACKING_API_URL`, `CONTAINER_TRACKING_API_KEY`.
 
@@ -162,6 +163,24 @@ PUBLIC_MAP_STYLE_URL=https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style
 PUBLIC_MAP_STYLE_URL_LIGHT=https://basemaps.cartocdn.com/gl/positron-gl-style/style.json
 PUBLIC_SIM_INTERVAL_MS=2000
 ```
+
+## 8a. Live AIS mode
+
+Live mode is built on a small pluggable layer in `src/lib/ais/` and `src/lib/live/`:
+
+| Piece | Role |
+| --- | --- |
+| `LiveAISSource` (`src/lib/ais/types.ts`) | Contract for a live source: `fetchVessels()` returns a snapshot of `Vessel` records plus coverage, attribution and poll interval. |
+| `DigitrafficAISSource` (`src/lib/ais/digitraffic.ts`) | The shipped source. Calls `https://meri.digitraffic.fi/api/ais/v1/locations` and `/vessels` directly from the browser (CORS-enabled, no key), joins positions with static data by MMSI, keeps cargo and tanker classes, drops positions older than 30 minutes. |
+| `src/lib/ais/codes.ts` | AIS decoding: MID → flag, ship-type → class, navigational status → dashboard status, packed MMDDHHMM ETA, destination clean-up (LOCODE and "VIA" handling). |
+| `LiveFeedService` (`src/lib/live/liveFeed.ts`) | Polls the source every 30 s (Digitraffic caches for 60 s), hands snapshots to the engine, exposes status/attribution to the UI. |
+| `SimulationEngine.enterLiveMode()` / `setLiveVessels()` | Parks the simulated fleet, dead-reckons live vessels along course and speed between polls, turns AIS status changes between polls into arrival/departure events, and keeps real-time (not accelerated) clocks. |
+
+What is real in live mode: positions, course, speed, heading, navigational status, name, IMO, MMSI, call sign, flag, dimensions, declared destination and ETA, the activity feed's arrivals/departures/zone entries, and the "high traffic" alerts. What stays simulated (and is labelled): port statistics, port congestion alerts, container tracking, lane statistics.
+
+Coverage is the Baltic Sea because that is where the Finnish AIS network listens. To go global, implement another `LiveAISSource` (for example a small server relay in front of [AISStream.io](https://aisstream.io)'s WebSocket, so the API key never reaches the browser) and register it in `getLiveSource()` in `src/lib/ais/index.ts`; the UI needs no changes. Set `PUBLIC_DEFAULT_DATA_SOURCE=digitraffic` to start in live mode.
+
+**Attribution.** Digitraffic data is licensed CC BY 4.0. The UI shows "AIS data: Fintraffic / Digitraffic, CC BY 4.0" in the live status pill and the Simulation panel; keep that when you deploy.
 
 ## 9. Replacing `MockVesselProvider` with a real API
 

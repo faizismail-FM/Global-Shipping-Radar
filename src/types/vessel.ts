@@ -1,6 +1,10 @@
 export type VesselStatus = 'underway' | 'anchored' | 'moored' | 'delayed';
 
-export type VesselType = 'container';
+/** Broad vessel class. AIS does not distinguish container ships from other cargo, so live data uses 'cargo'. */
+export type VesselType = 'container' | 'cargo' | 'tanker' | 'passenger' | 'other';
+
+/** Where a vessel record came from. */
+export type VesselSource = 'simulated' | 'ais';
 
 export interface Vessel {
   id: string;
@@ -8,8 +12,11 @@ export interface Vessel {
   imo: string;
   mmsi: string;
   type: VesselType;
+  source: VesselSource;
   flag: string;
   flagCode: string;
+  /** Radio call sign (AIS static data). */
+  callSign?: string;
 
   latitude: number;
   longitude: number;
@@ -44,7 +51,7 @@ export interface Vessel {
 
   // --- Simulation metadata (not part of the public AIS-style shape) ---
 
-  /** Shipping lane the vessel is sailing on. */
+  /** Shipping lane the vessel is sailing on (empty for live AIS vessels). */
   laneId: string;
   /** Voyage number in carrier format, e.g. "123E". */
   voyage: string;

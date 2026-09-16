@@ -48,6 +48,7 @@ function matchVoyage(v: Vessel, pol: string, pod: string, vesselQuery: string, v
 
 export function VoyageSearchPage() {
   const vessels = useSimulation((s) => s.vessels);
+  const isLive = useSimulation((s) => s.dataSource === 'ais');
   const speedUnit = useSettings((s) => s.speedUnit);
   const [pol, setPol] = useState('');
   const [pod, setPod] = useState('');
@@ -75,6 +76,11 @@ export function VoyageSearchPage() {
   return (
     <PageShell title="Voyage Search" icon={Search} description="Find vessels sailing between two ports, or by voyage number">
       <div className="mx-auto w-full max-w-4xl px-4 py-6">
+        {isLive && (
+          <p className="mb-4 rounded-md border border-warning/30 bg-warning-soft px-3 py-2 text-[12px] text-ink">
+            With the live AIS feed only the declared destination is known, so port-pair matching uses the AIS destination field and lane transits are not available.
+          </p>
+        )}
         <div className="grid grid-cols-1 gap-3 rounded-lg border hairline p-4 sm:grid-cols-2 lg:grid-cols-[1fr_auto_1fr_1fr_1fr]">
           <label className="flex flex-col gap-1">
             <span className="label-caps">Port of loading (POL)</span>
