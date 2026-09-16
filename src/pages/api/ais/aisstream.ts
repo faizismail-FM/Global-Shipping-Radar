@@ -156,10 +156,14 @@ function collect(wsUrl: string, apiKey: string, bbox: [number, number, number, n
       );
       setTimeout(finish, windowMs);
     };
-    ws.onmessage = (event: MessageEvent) => {
+    // AISStream sends binary frames containing UTF-8 JSON.
+    ws.binaryType = 'arraybuffer';
+    const decoder = new TextDecoder();
+    const handle = (text: string) => {
+      if (settled) return;
       let msg: AisEnvelope;
       try {
-        msg = JSON.parse(typeof event.data === 'string' ? event.data : String(event.data)) as AisEnvelope;
+        msg = JSON.parse(text) as AisEnvelope;
       } catch {
         return;
       }
@@ -204,6 +208,13 @@ function collect(wsUrl: string, apiKey: string, bbox: [number, number, number, n
           draught: d.MaximumStaticDraught ?? 0,
         });
       }
+    };
+    ws.onmessage = (event: MessageEvent) => {
+      const data: unknown = event.data;
+      if (typeof data === 'string') handle(data);
+      else if (data instanceof ArrayBuffer) handle(decoder.decode(data));
+      else if (ArrayBuffer.isView(data)) handle(decoder.decode(data));
+      else if (data instanceof Blob) void data.text().then(handle, () => undefined);
     };
     ws.onerror = () => fail('Could not connect to AISStream.');
     ws.onclose = (event: CloseEvent) => {
