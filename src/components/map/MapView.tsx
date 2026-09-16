@@ -11,6 +11,8 @@ import { LANES, LANE_BY_ID } from '@/data/lanes';
 import { PORT_BY_ID } from '@/data/ports';
 import { SimulationEngine } from '@/lib/simulation/engine';
 import { distanceNm, normalizeLongitude, type LngLat } from '@/lib/geo';
+import { viewportStore } from '@/lib/map/viewport';
+import { liveFeed } from '@/lib/live/liveFeed';
 import { VesselTooltip } from './VesselTooltip';
 import { MapControls } from './MapControls';
 
@@ -318,6 +320,17 @@ export function MapView() {
 
     const ro = new ResizeObserver(() => scene.resize());
     ro.observe(container);
+
+    // Publish the viewport for viewport-driven data sources (e.g. AISStream).
+    const publishViewport = () => {
+      const b = scene.map.getBounds();
+      viewportStore.setState({ bounds: [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()], zoom: scene.map.getZoom() });
+    };
+    scene.map.on('load', publishViewport);
+    scene.map.on('moveend', () => {
+      publishViewport();
+      liveFeed.notifyViewportChange();
+    });
 
     // Expose the map for browser-based QA tooling only (?qa=1).
     if (new URLSearchParams(window.location.search).has('qa')) {

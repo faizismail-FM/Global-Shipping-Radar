@@ -67,6 +67,8 @@ class LiveFeedService {
   stop(): void {
     if (this.timer) clearInterval(this.timer);
     this.timer = null;
+    if (this.viewportTimer) clearTimeout(this.viewportTimer);
+    this.viewportTimer = null;
     this.abort?.abort();
     this.abort = null;
     if (this.engine) this.engine.exitLiveMode();
@@ -77,6 +79,15 @@ class LiveFeedService {
 
   async refresh(): Promise<void> {
     await this.poll();
+  }
+
+  private viewportTimer: ReturnType<typeof setTimeout> | null = null;
+
+  /** Called by the map after it moves; viewport-driven sources re-poll shortly after. */
+  notifyViewportChange(): void {
+    if (!this.source?.viewportSensitive) return;
+    if (this.viewportTimer) clearTimeout(this.viewportTimer);
+    this.viewportTimer = setTimeout(() => void this.poll(), 1_500);
   }
 
   get active(): boolean {
