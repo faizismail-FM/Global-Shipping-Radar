@@ -7,6 +7,7 @@ import { mapBus } from '@/lib/map/bus';
 import { useSimulation, useClickOutside, useIsMobile } from '@/lib/hooks';
 import { Kbd, StatusDot } from '@/components/ui';
 import { CONTAINERS } from '@/data/containers';
+import { useContainerTracking } from '@/lib/providers';
 
 const ICONS: Record<SearchResult['type'], typeof Ship> = { vessel: Ship, port: Anchor, container: Container, location: MapPin };
 
@@ -118,6 +119,7 @@ export function GlobalSearch() {
   const showDropdown = open && (query.trim().length > 0);
   const containerQuery = response?.query.kind === 'container' ? response.query.value : null;
   const knownContainer = containerQuery ? CONTAINERS.some((c) => c.containerNumber === containerQuery) : false;
+  const liveCarriers = useContainerTracking((s) => (s.configured ? s.carriers.join(', ') : null));
 
   return (
     <div ref={wrapRef} className="relative w-full">
@@ -212,7 +214,9 @@ export function GlobalSearch() {
               })}
               {group.type === 'container' && containerQuery && !knownContainer && (
                 <p className="px-2.5 pb-2 pt-1 text-[11px] leading-relaxed text-faint">
-                  Container tracking requires a connected carrier / tracking data source. This demo only resolves its built-in sample records.
+                  {liveCarriers
+                    ? `Press Enter to look this container up at ${liveCarriers}. Other carriers are not connected yet.`
+                    : 'Container tracking requires a connected carrier / tracking data source. This demo only resolves its built-in sample records.'}
                 </p>
               )}
             </div>

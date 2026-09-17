@@ -40,10 +40,25 @@ export interface Container {
 
   milestones: ContainerMilestone[];
 
-  /** Bill of lading number (demo). */
+  /** Bill of lading / transport document number ('—' when not reported). */
   billOfLading: string;
+  /** Carrier booking reference, when reported. */
+  bookingReference?: string;
   /** Carrier operating the booking. */
   carrier: string;
-  /** Always true in the MVP: these records are simulated. */
-  demo: true;
+  /** IMO number of the current/next vessel, when reported. */
+  vesselImo?: string;
+  /** Time of the most recent actual carrier event (ISO-8601). */
+  lastEventAt?: string;
+  /** True for the built-in simulated records; false for records from a carrier API. */
+  demo: boolean;
+  /** Provenance of a live record. */
+  source?: {
+    /** Human-readable source, e.g. "Hapag-Lloyd Track & Trace". */
+    name: string;
+    /** When the relay fetched it (ISO-8601). */
+    fetchedAt: string;
+    /** Number of carrier events the record was built from. */
+    eventCount: number;
+  };
 }

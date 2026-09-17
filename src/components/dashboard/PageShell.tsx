@@ -31,6 +31,7 @@ export function PageShell({
   children,
   className,
   provenance = 'simulated',
+  badge,
 }: {
   title: string;
   icon: LucideIcon;
@@ -40,6 +41,8 @@ export function PageShell({
   className?: string;
   /** 'vessels': content derives from the vessel set, so it is live when a real AIS feed has delivered data. */
   provenance?: 'simulated' | 'vessels';
+  /** Explicit header badge (overrides the provenance tag), e.g. for a page whose data source varies per lookup. */
+  badge?: ReactNode;
 }) {
   useEscape(() => ui.setView('overview'));
   return (
@@ -53,7 +56,7 @@ export function PageShell({
           {description && <p className="truncate text-[12px] text-muted">{description}</p>}
         </div>
         <div className="hidden items-center gap-2 sm:flex">{actions}</div>
-        <ProvenanceTag provenance={provenance} className="hidden lg:inline-flex" />
+        {badge !== undefined ? <span className="hidden lg:inline-flex">{badge}</span> : <ProvenanceTag provenance={provenance} className="hidden lg:inline-flex" />}
         <IconButton label="Close and return to map" onClick={() => ui.setView('overview')}>
           <X size={16} />
         </IconButton>

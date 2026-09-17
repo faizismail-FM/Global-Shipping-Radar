@@ -345,18 +345,23 @@ export function DemoTag({ className, children = 'Simulated data' }: { className?
   );
 }
 
+/** Green "live data" badge with a pulsing dot. */
+export function LiveTag({ label, title, className }: { label: ReactNode; title?: string; className?: string }) {
+  return (
+    <span
+      className={cn('inline-flex items-center gap-1 rounded border border-success/30 bg-success-soft px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-success', className)}
+      title={title}
+    >
+      <span className="h-1.5 w-1.5 rounded-full bg-success animate-live" aria-hidden />
+      {label}
+    </span>
+  );
+}
+
 /** Data-provenance tag for a vessel record. */
 export function SourceTag({ source, sourceName, className }: { source: 'simulated' | 'ais'; sourceName?: string | null; className?: string }) {
   if (source === 'ais') {
-    return (
-      <span
-        className={cn('inline-flex items-center gap-1 rounded border border-success/30 bg-success-soft px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-success', className)}
-        title="Position, course and speed reported by the vessel's AIS transponder."
-      >
-        <span className="h-1.5 w-1.5 rounded-full bg-success animate-live" aria-hidden />
-        Live AIS{sourceName ? ` · ${sourceName}` : ''}
-      </span>
-    );
+    return <LiveTag label={`Live AIS${sourceName ? ` · ${sourceName}` : ''}`} title="Position, course and speed reported by the vessel's AIS transponder." className={className} />;
   }
   return <DemoTag className={className} />;
 }

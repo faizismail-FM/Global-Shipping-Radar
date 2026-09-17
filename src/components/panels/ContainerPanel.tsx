@@ -1,33 +1,99 @@
-import { Container, Ship, ExternalLink } from 'lucide-react';
-import { getProviders } from '@/lib/providers';
-import { useAsync, useSimulation } from '@/lib/hooks';
-import { ui } from '@/lib/store/ui';
-import { mapBus } from '@/lib/map/bus';
-import { formatDateLong } from '@/lib/formatting';
-import { Button, DemoTag, EmptyState, KeyValue, PanelHeader, Skeleton } from '@/components/ui';
-import { ContainerTimeline } from '@/components/tracking/ContainerTimeline';
+import { Container, Ship, ExternalLink } from "lucide-react";
+import { getProviders, useContainerTracking } from "@/lib/providers";
+import { useAsync, useSimulation } from "@/lib/hooks";
+import { ui } from "@/lib/store/ui";
+import { mapBus } from "@/lib/map/bus";
+import { formatDateLong } from "@/lib/formatting";
+import {
+  Button,
+  DemoTag,
+  EmptyState,
+  KeyValue,
+  LiveTag,
+  PanelHeader,
+  Skeleton,
+} from "@/components/ui";
+import { ContainerTimeline } from "@/components/tracking/ContainerTimeline";
+import { CarrierLinkCard } from "@/components/tracking/CarrierLinkCard";
 
-export function ContainerPanel({ number, onBack, onClose }: { number: string; onBack?: () => void; onClose: () => void }) {
-  const { loading, data: container } = useAsync(() => getProviders().containers.searchContainer(number), [number], 300);
-  const vessel = useSimulation((s) => (container ? (s.vessels.find((v) => v.name === container.vesselName) ?? null) : null));
+export function ContainerPanel({
+  number,
+  onBack,
+  onClose,
+}: {
+  number: string;
+  onBack?: () => void;
+  onClose: () => void;
+}) {
+  const {
+    loading,
+    data: container,
+    error,
+  } = useAsync(
+    () => getProviders().containers.searchContainer(number),
+    [number],
+    300,
+  );
+  const vessel = useSimulation((s) =>
+    container
+      ? (s.vessels.find(
+          (v) =>
+            v.name === container.vesselName ||
+            (container.vesselImo !== undefined &&
+              v.imo === container.vesselImo),
+        ) ?? null)
+      : null,
+  );
+  const tracking = useContainerTracking((s) => ({
+    configured: s.configured,
+    carriers: s.carriers,
+  }));
 
   return (
     <div className="flex h-full flex-col">
-      <PanelHeader title="Container" icon={Container} onBack={onBack} onClose={onClose} />
+      <PanelHeader
+        title="Container"
+        icon={Container}
+        onBack={onBack}
+        onClose={onClose}
+      />
       {loading ? (
         <ContainerSkeleton />
       ) : !container ? (
-        <EmptyState
-          icon={Container}
-          title="Container not found."
-          action={
-            <Button size="sm" variant="outline" onClick={() => ui.openTracking(number)}>
-              Open container tracking
-            </Button>
-          }
-        >
-          <span className="num">{number}</span> is not in the demo dataset. This demo only contains simulated tracking records; live lookups require a connected carrier or tracking data source.
-        </EmptyState>
+        <div className="flex-1 overflow-y-auto">
+          <EmptyState
+            icon={Container}
+            title={error ? "Lookup failed." : "Container not found."}
+            action={
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => ui.openTracking(number)}
+              >
+                Open container tracking
+              </Button>
+            }
+          >
+            {error ? (
+              <>{error}</>
+            ) : tracking.configured ? (
+              <>
+                <span className="num">{number}</span> has no events at{" "}
+                {tracking.carriers.join(", ")} and is not a demo record. Only
+                containers on {tracking.carriers.join(", ")} bookings are
+                covered; other carriers are not connected yet.
+              </>
+            ) : (
+              <>
+                <span className="num">{number}</span> is not in the demo dataset
+                and no carrier API is connected.
+              </>
+            )}
+          </EmptyState>
+          <div className="px-4 pb-4">
+            <CarrierLinkCard containerNumber={number} compact />
+          </div>
+        </div>
       ) : (
         <div className="flex-1 overflow-y-auto px-4 py-4">
           <div className="flex items-start gap-3">
@@ -35,12 +101,21 @@ export function ContainerPanel({ number, onBack, onClose }: { number: string; on
               <Container size={18} />
             </div>
             <div className="min-w-0 flex-1">
-              <h3 className="num truncate text-[17px] font-semibold leading-tight text-ink">{container.containerNumber}</h3>
+              <h3 className="num truncate text-[17px] font-semibold leading-tight text-ink">
+                {container.containerNumber}
+              </h3>
               <p className="text-[12px] text-muted">
                 {container.sizeType} · {container.status}
               </p>
             </div>
-            <DemoTag>Demo tracking data</DemoTag>
+            {container.demo ? (
+              <DemoTag>Demo tracking data</DemoTag>
+            ) : (
+              <LiveTag
+                label={`Live · ${container.carrier}`}
+                title={`Carrier events from ${container.source?.name ?? container.carrier}`}
+              />
+            )}
           </div>
 
           <div className="mt-4 grid grid-cols-2 gap-x-3 gap-y-4">
@@ -53,7 +128,11 @@ export function ContainerPanel({ number, onBack, onClose }: { number: string; on
                     className="inline-flex items-center gap-1 text-accent hover:underline"
                     onClick={() => {
                       ui.openVessel(vessel.id);
-                      mapBus.dispatch({ type: 'focusVessel', id: vessel.id, zoom: 6.5 });
+                      mapBus.dispatch({
+                        type: "focusVessel",
+                        id: vessel.id,
+                        zoom: 6.5,
+                      });
                     }}
                   >
                     <Ship size={12} /> {container.vesselName}
@@ -67,7 +146,19 @@ export function ContainerPanel({ number, onBack, onClose }: { number: string; on
             <KeyValue label="POL" value={container.portOfLoading} />
             <KeyValue label="POD" value={container.portOfDischarge} />
             <KeyValue label="Carrier" value={container.carrier} />
-            <KeyValue label="Bill of lading" value={container.billOfLading} mono />
+            <KeyValue
+              label={
+                container.bookingReference && container.billOfLading === "—"
+                  ? "Booking ref."
+                  : "Bill of lading"
+              }
+              value={
+                container.billOfLading === "—" && container.bookingReference
+                  ? container.bookingReference
+                  : container.billOfLading
+              }
+              mono
+            />
           </div>
 
           <div className="mt-5">
@@ -76,15 +167,39 @@ export function ContainerPanel({ number, onBack, onClose }: { number: string; on
           </div>
 
           <div className="mt-4 grid grid-cols-2 gap-3">
-            <KeyValue label="Current location" value={container.currentLocation} />
-            <KeyValue label="ETA" value={formatDateLong(container.estimatedArrival)} />
+            <KeyValue
+              label="Current location"
+              value={container.currentLocation}
+            />
+            <KeyValue
+              label="ETA"
+              value={formatDateLong(container.estimatedArrival)}
+            />
           </div>
+          {!container.demo && container.source && (
+            <p className="mt-3 text-[11px] leading-relaxed text-faint">
+              {container.source.eventCount} carrier events from{" "}
+              {container.source.name}, fetched{" "}
+              {formatDateLong(container.source.fetchedAt)}.
+            </p>
+          )}
 
           <div className="mt-5">
-            <Button variant="outline" icon={ExternalLink} block onClick={() => ui.openTracking(container.containerNumber)}>
+            <Button
+              variant="outline"
+              icon={ExternalLink}
+              block
+              onClick={() => ui.openTracking(container.containerNumber)}
+            >
               Open in Container Tracking
             </Button>
           </div>
+          <CarrierLinkCard
+            containerNumber={container.containerNumber}
+            knownCarrier={container.carrier}
+            compact
+            className="mt-4"
+          />
         </div>
       )}
     </div>
@@ -93,7 +208,11 @@ export function ContainerPanel({ number, onBack, onClose }: { number: string; on
 
 function ContainerSkeleton() {
   return (
-    <div className="space-y-4 px-4 py-4" aria-busy="true" aria-label="Looking up container">
+    <div
+      className="space-y-4 px-4 py-4"
+      aria-busy="true"
+      aria-label="Looking up container"
+    >
       <div className="flex items-center gap-3">
         <Skeleton className="h-10 w-10" />
         <div className="flex-1 space-y-2">
