@@ -6,8 +6,8 @@ import { setVesselSourceInfo } from '@/lib/providers';
 import { mapBus } from '@/lib/map/bus';
 import { liveFeed } from './liveFeed';
 
-export { liveFeed, liveFeedStore, useLiveFeed } from './liveFeed';
-export type { LiveFeedState, LiveStatus } from './liveFeed';
+export { liveFeed, liveFeedStore, useLiveFeed, logFeed, clearFeedLog, feedLogAsText } from './liveFeed';
+export type { LiveFeedState, LiveStatus, FeedLogEntry, FeedLogLevel } from './liveFeed';
 
 /**
  * Apply the `dataSource` setting: start polling a live AIS source, or return

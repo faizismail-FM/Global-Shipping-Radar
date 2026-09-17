@@ -35,6 +35,14 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
         <section className="mt-5">
           <div className="label-caps mb-1.5">Vessel data source</div>
           <DataSourceControl />
+          <div className="mt-2 divide-y divide-[var(--border)]">
+            <Toggle
+              checked={settings.feedLogging}
+              onChange={(v) => updateSettings({ feedLogging: v })}
+              label="Log live feed to console"
+              description="Print every AIS poll (area, counts, timings, errors) to the browser console"
+            />
+          </div>
         </section>
 
         <section className="mt-5">

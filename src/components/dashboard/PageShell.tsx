@@ -3,8 +3,24 @@ import type { LucideIcon } from 'lucide-react';
 import { X } from 'lucide-react';
 import { ui } from '@/lib/store/ui';
 import { useEscape } from '@/lib/hooks';
-import { DemoTag, IconButton } from '@/components/ui';
+import { DemoTag, IconButton, SourceTag } from '@/components/ui';
+import { useSimulation } from '@/lib/hooks';
+import { useLiveFeed } from '@/lib/live';
 import { cn } from '@/lib/cn';
+
+/**
+ * Data-provenance badge for a page header. Pages whose content is always
+ * generated show "Simulated data". Pages built from the vessel set switch to
+ * a live badge once a real AIS snapshot has actually arrived; until then (or
+ * when the feed has not delivered anything) they keep the simulated label.
+ */
+function ProvenanceTag({ provenance, className }: { provenance: 'simulated' | 'vessels'; className?: string }) {
+  const dataSource = useSimulation((s) => s.dataSource);
+  const feed = useLiveFeed((s) => ({ status: s.status, count: s.vesselCount, name: s.sourceName }));
+  const live = provenance === 'vessels' && dataSource === 'ais' && feed.count > 0 && (feed.status === 'live' || feed.status === 'error');
+  if (live) return <SourceTag source="ais" sourceName={feed.name} className={className} />;
+  return <DemoTag className={className} />;
+}
 
 /** Full-area view rendered over the map (Vessels, Ports, Routes, …). */
 export function PageShell({
@@ -14,6 +30,7 @@ export function PageShell({
   actions,
   children,
   className,
+  provenance = 'simulated',
 }: {
   title: string;
   icon: LucideIcon;
@@ -21,6 +38,8 @@ export function PageShell({
   actions?: ReactNode;
   children: ReactNode;
   className?: string;
+  /** 'vessels': content derives from the vessel set, so it is live when a real AIS feed has delivered data. */
+  provenance?: 'simulated' | 'vessels';
 }) {
   useEscape(() => ui.setView('overview'));
   return (
@@ -34,7 +53,7 @@ export function PageShell({
           {description && <p className="truncate text-[12px] text-muted">{description}</p>}
         </div>
         <div className="hidden items-center gap-2 sm:flex">{actions}</div>
-        <DemoTag className="hidden lg:inline-flex" />
+        <ProvenanceTag provenance={provenance} className="hidden lg:inline-flex" />
         <IconButton label="Close and return to map" onClick={() => ui.setView('overview')}>
           <X size={16} />
         </IconButton>

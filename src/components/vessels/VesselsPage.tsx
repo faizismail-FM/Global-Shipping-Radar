@@ -70,6 +70,7 @@ export function VesselsPage() {
     <PageShell
       title="Vessels"
       icon={Ship}
+      provenance="vessels"
       description={`${formatNumber(rows.length)} of ${formatNumber(vessels.length)} ${isLive ? 'live AIS vessels (cargo and tankers)' : 'simulated container vessels'}`}
       actions={
         <>

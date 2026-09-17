@@ -53,6 +53,8 @@ export interface RelaySnapshot {
   windowMs: number;
   receivedAt: number;
   messages: number;
+  /** Time from opening the WebSocket to the subscription being sent. */
+  connectMs: number;
 }
 
 const json = (body: unknown, status = 200, headers: Record<string, string> = {}) =>
@@ -115,6 +117,8 @@ function collect(wsUrl: string, apiKey: string, bbox: [number, number, number, n
     const statics = new Map<number, RelayStatic>();
     let messages = 0;
     let settled = false;
+    const startedAt = Date.now();
+    let connectMs = -1;
     let ws: WebSocket;
     try {
       ws = new WebSocket(wsUrl);
@@ -131,7 +135,10 @@ function collect(wsUrl: string, apiKey: string, bbox: [number, number, number, n
       } catch {
         /* already closed */
       }
-      resolve({ positions: [...positions.values()], statics: [...statics.values()], bbox, windowMs, receivedAt: Date.now(), messages });
+      console.log(
+        `[aisstream relay] bbox=${bbox.join(',')} window=${windowMs}ms connect=${connectMs}ms messages=${messages} positions=${positions.size} statics=${statics.size} total=${Date.now() - startedAt}ms`,
+      );
+      resolve({ positions: [...positions.values()], statics: [...statics.values()], bbox, windowMs, receivedAt: Date.now(), messages, connectMs });
     };
     const fail = (message: string) => {
       if (settled) return;
@@ -142,11 +149,13 @@ function collect(wsUrl: string, apiKey: string, bbox: [number, number, number, n
       } catch {
         /* ignore */
       }
+      console.error(`[aisstream relay] bbox=${bbox.join(',')} failed after ${Date.now() - startedAt}ms (connect=${connectMs}ms, messages=${messages}): ${message}`);
       reject(new Error(message));
     };
     const guard = setTimeout(finish, windowMs + CONNECT_GRACE_MS);
 
     ws.onopen = () => {
+      connectMs = Date.now() - startedAt;
       ws.send(
         JSON.stringify({
           APIKey: apiKey,
@@ -229,6 +238,7 @@ export const GET: APIRoute = async ({ url }) => {
   const apiKey = env('AISSTREAM_API_KEY');
   const noStore = { 'Cache-Control': 'no-store' };
   if (!apiKey) {
+    console.warn('[aisstream relay] request refused: AISSTREAM_API_KEY is not set');
     return json({ configured: false, error: 'AISSTREAM_API_KEY is not configured on the server.' }, 503, noStore);
   }
   if (url.searchParams.has('probe')) return json({ configured: true }, 200, noStore);
