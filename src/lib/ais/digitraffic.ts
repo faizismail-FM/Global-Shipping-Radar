@@ -81,14 +81,19 @@ export class DigitrafficAISSource implements LiveAISSource {
     this.types = new Set(options.types ?? ['cargo', 'tanker']);
   }
 
+  lastFetchDetail?: string;
+
   async fetchVessels(signal?: AbortSignal): Promise<Vessel[]> {
     const now = Date.now();
     // Static data changes rarely; refresh it every 10 minutes.
     const wantMeta = now - this.metaFetchedAt > 10 * 60_000;
+    this.lastFetchDetail = `GET /locations${wantMeta ? ' + /vessels' : ''} · request failed before a response`;
+    const started = performance.now();
     const [locations, meta] = await Promise.all([
       getJson<{ features: LocationFeature[] }>('/locations', signal),
       wantMeta ? getJson<VesselMeta[]>('/vessels', signal) : Promise.resolve(null),
     ]);
+    const fetchMs = Math.round(performance.now() - started);
     if (meta) {
       this.metaCache = new Map(meta.map((m) => [m.mmsi, m]));
       this.metaFetchedAt = now;
@@ -147,6 +152,9 @@ export class DigitrafficAISSource implements LiveAISSource {
       });
       void nowIso;
     }
+    this.lastFetchDetail =
+      `${locations.features.length} positions from Digitraffic in ${fetchMs} ms · metadata ${meta ? `refreshed (${meta.length} vessels)` : 'cached'}` +
+      ` · ${vessels.length} kept (cargo/tanker, reported within ${Math.round(this.maxAge / 60_000)} min)`;
     return vessels;
   }
 }

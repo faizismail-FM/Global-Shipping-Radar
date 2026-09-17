@@ -29,7 +29,7 @@ export function AlertsPage() {
   const counts = { critical: alerts.filter((a) => a.severity === 'critical').length, warning: alerts.filter((a) => a.severity === 'warning').length, info: alerts.filter((a) => a.severity === 'info').length };
 
   return (
-    <PageShell title="Alerts" icon={Bell} description={`${counts.critical} critical · ${counts.warning} warnings · ${counts.info} informational`}>
+    <PageShell title="Alerts" icon={Bell} provenance="vessels" description={`${counts.critical} critical · ${counts.warning} warnings · ${counts.info} informational`}>
       {alerts.length === 0 ? (
         <EmptyState icon={CheckCircle2} title="No active alerts">
           Alerts are derived from the simulation: port congestion, vessel delays and chokepoint traffic.

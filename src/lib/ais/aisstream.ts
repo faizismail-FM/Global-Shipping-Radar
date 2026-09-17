@@ -58,15 +58,24 @@ export class AISStreamSource implements LiveAISSource {
     return [Math.max(-180, w), Math.max(-85, s), Math.min(180, e), Math.min(85, n)];
   }
 
+  lastFetchDetail?: string;
+
   async fetchVessels(signal?: AbortSignal): Promise<Vessel[]> {
-    const bbox = this.requestBounds().map((v) => v.toFixed(2)).join(',');
+    const bounds = this.requestBounds();
+    const bbox = bounds.map((v) => v.toFixed(2)).join(',');
+    const area = `bbox ${bounds[0].toFixed(1)},${bounds[1].toFixed(1)} → ${bounds[2].toFixed(1)},${bounds[3].toFixed(1)}`;
+    this.lastFetchDetail = `${area} · request failed before a response`;
+    const started = performance.now();
     const res = await fetch(`/api/ais/aisstream?bbox=${bbox}`, { signal, headers: { accept: 'application/json' } });
+    const relayMs = Math.round(performance.now() - started);
+    const cache = res.headers.get('x-vercel-cache');
     let body: Partial<RelaySnapshot> & { error?: string; configured?: boolean } = {};
     try {
       body = (await res.json()) as typeof body;
     } catch {
       /* non-JSON error page */
     }
+    this.lastFetchDetail = `${area} · relay ${res.status} in ${relayMs} ms${cache ? ` · CDN ${cache}` : ''}`;
     if (res.status === 503 && body.configured === false) {
       throw new Error('AISStream is not configured: set AISSTREAM_API_KEY on the server.');
     }
@@ -75,7 +84,19 @@ export class AISStreamSource implements LiveAISSource {
     const now = Date.now();
     for (const p of body.positions ?? []) this.tracks.set(p.mmsi, { position: p, seenAt: now });
     for (const s of body.statics ?? []) this.statics.set(s.mmsi, s);
-    for (const [mmsi, t] of this.tracks) if (now - t.seenAt > TRACK_TTL_MS) this.tracks.delete(mmsi);
+    let expired = 0;
+    for (const [mmsi, t] of this.tracks) {
+      if (now - t.seenAt > TRACK_TTL_MS) {
+        this.tracks.delete(mmsi);
+        expired++;
+      }
+    }
+    const snapBbox = body.bbox ? ` (snapped ${body.bbox.join(',')})` : '';
+    this.lastFetchDetail =
+      `${area}${snapBbox} · ${body.messages ?? 0} AIS msgs in ${Math.round((body.windowMs ?? 0) / 1000)} s` +
+      ` · ${(body.positions ?? []).length} positions · ${(body.statics ?? []).length} static` +
+      ` · relay ${relayMs} ms${body.connectMs !== undefined ? ` (ws connect ${body.connectMs} ms)` : ''}${cache ? ` · CDN ${cache}` : ''}` +
+      ` · tracked ${this.tracks.size}${expired ? ` · expired ${expired}` : ''}`;
 
     return [...this.tracks.values()].map(({ position: p }) => this.toVessel(p, now));
   }

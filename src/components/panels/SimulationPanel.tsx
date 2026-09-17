@@ -1,12 +1,14 @@
-import { Activity, Pause, Play, StepForward, RefreshCw, RadioTower } from 'lucide-react';
+import { useState } from 'react';
+import { Activity, Pause, Play, StepForward, RefreshCw, RadioTower, ChevronDown, ChevronRight, Copy, Trash2, ScrollText } from 'lucide-react';
 import { getEngine } from '@/lib/simulation';
 import { useNow, useSimulation } from '@/lib/hooks';
 import { updateSettings } from '@/lib/store/settings';
 import { getProviders } from '@/lib/providers';
 import { Button, PanelHeader, Segmented, Toggle } from '@/components/ui';
-import { formatDateTime, formatRelative } from '@/lib/formatting';
+import { formatDateTime, formatRelative, formatTime } from '@/lib/formatting';
 import { cn } from '@/lib/cn';
-import { liveFeed, useLiveFeed } from '@/lib/live';
+import { liveFeed, useLiveFeed, clearFeedLog, feedLogAsText } from '@/lib/live';
+import type { FeedLogEntry } from '@/lib/live';
 import { DataSourceControl } from './DataSourceControl';
 
 const INTERVALS = [
@@ -65,6 +67,7 @@ export function SimulationPanel({ onClose }: { onClose: () => void }) {
                 {feed.attribution}
               </a>
             )}
+            <FeedLog entries={feed.log} />
           </div>
         ) : (
           <div className="mt-3 flex items-center gap-3 rounded-md border hairline px-3 py-2.5">
@@ -150,6 +153,67 @@ export function SimulationPanel({ onClose }: { onClose: () => void }) {
           </ul>
         </section>
       </div>
+    </div>
+  );
+}
+
+const LEVEL_CLASS: Record<FeedLogEntry['level'], string> = {
+  info: 'text-muted',
+  ok: 'text-success',
+  warn: 'text-warning',
+  error: 'text-danger',
+};
+
+/** Collapsible diagnostic log of live-feed polls (also mirrored to the browser console). */
+function FeedLog({ entries }: { entries: FeedLogEntry[] }) {
+  const [open, setOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(feedLogAsText());
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* clipboard unavailable */
+    }
+  };
+  const latest = entries[0];
+  return (
+    <div className="mt-2 border-t hairline pt-2">
+      <div className="flex items-center gap-1">
+        <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} className="flex min-w-0 flex-1 items-center gap-1.5 text-left text-[11px] text-muted hover:text-ink">
+          {open ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+          <ScrollText size={12} />
+          <span className="font-medium">Feed log</span>
+          <span className="num text-faint">({entries.length})</span>
+          {!open && latest && <span className={cn('num min-w-0 truncate', LEVEL_CLASS[latest.level])}>· {latest.message}</span>}
+        </button>
+        {open && (
+          <>
+            <button type="button" onClick={() => void copy()} aria-label="Copy log" title={copied ? 'Copied' : 'Copy log as text'} className={cn('text-muted hover:text-ink', copied && 'text-success')}>
+              <Copy size={12} />
+            </button>
+            <button type="button" onClick={clearFeedLog} aria-label="Clear log" title="Clear log" className="text-muted hover:text-ink">
+              <Trash2 size={12} />
+            </button>
+          </>
+        )}
+      </div>
+      {open && (
+        <ol className="mt-1.5 max-h-56 space-y-1 overflow-y-auto pr-1" aria-live="polite" aria-label="Live feed log">
+          {entries.length === 0 && <li className="text-[11px] text-faint">Nothing logged yet.</li>}
+          {entries.map((e) => (
+            <li key={e.id} className="text-[11px] leading-snug">
+              <span className="num text-faint">{formatTime(e.at)}</span> <span className={LEVEL_CLASS[e.level]}>{e.message}</span>
+              {e.detail && <div className="num break-words pl-[52px] text-[10px] text-faint">{e.detail}</div>}
+            </li>
+          ))}
+        </ol>
+      )}
+      <p className="mt-1.5 text-[10px] leading-relaxed text-faint">
+        Same lines go to the browser console (F12 → Console; enable “Log live feed to console” in Settings for info level). The relay’s own WebSocket
+        log is in Vercel → Project → Logs.
+      </p>
     </div>
   );
 }

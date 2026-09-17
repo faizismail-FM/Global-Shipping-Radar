@@ -16,4 +16,6 @@ export interface Settings {
   /** Desktop sidebar collapsed to icons only. */
   sidebarCollapsed: boolean;
   dataSource: DataSource;
+  /** Mirror the live-feed log to the browser console at info level. */
+  feedLogging: boolean;
 }

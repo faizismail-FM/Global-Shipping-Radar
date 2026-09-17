@@ -17,4 +17,6 @@ export interface LiveAISSource {
   /** True when results depend on the map viewport (the feed re-polls after the map moves). */
   readonly viewportSensitive?: boolean;
   fetchVessels(signal?: AbortSignal): Promise<Vessel[]>;
+  /** One-line technical summary of the most recent fetch (request area, counts, timings), for the feed log. */
+  lastFetchDetail?: string;
 }

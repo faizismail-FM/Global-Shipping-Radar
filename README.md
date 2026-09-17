@@ -199,6 +199,18 @@ AISSTREAM_API_KEY=test-key AISSTREAM_WS_URL=ws://127.0.0.1:9123 npm run dev
 curl "http://localhost:4321/api/ais/aisstream?bbox=-6,48,10,56"
 ```
 
+**Seeing what the feed is doing.** Every poll is logged in three places:
+
+| Where | What you see | How |
+| --- | --- | --- |
+| In the app | **Feed log** inside the Simulation / "Data & simulation" panel (activity icon in the top bar) while a live source is active. Each line: time, outcome, vessel count with +added/−dropped, duration, and detail such as the requested bounding box, AIS message count, relay timing, CDN cache HIT/MISS and expired tracks. Copy (clipboard) and clear buttons. | Open the panel and expand **Feed log**. |
+| Browser console | The same lines prefixed `[GSR live]`. | F12 → Console. By default they use `console.debug` (enable the *Verbose* level). Turn on **Settings → Log live feed to console** to log at info/warn/error level instead. |
+| Server (relay) | The WebSocket side: `[aisstream relay] bbox=… window=… connect=…ms messages=… positions=… statics=… total=…ms`, plus a `failed` line with the reason when the stream errors or closes early. | Vercel → project → **Logs** (runtime logs of the `/api/ais/aisstream` function). Locally these print in the `npm run dev` terminal. |
+
+The relay itself can be probed with `curl "https://<your-site>/api/ais/aisstream?probe=1"` (`{"configured":true}` when the key is set) or with a bounding box as above.
+
+**Data labels.** Page headers show **Simulated data** until a live source has actually delivered vessels; the Vessels and Alerts pages then switch to a green **Live AIS · <source>** badge. Pages whose content is always generated (Ports, Routes, Container Tracking, Voyage Search) keep the simulated label in live mode.
+
 **Attribution.** Digitraffic data is licensed CC BY 4.0. The UI shows "AIS data: Fintraffic / Digitraffic, CC BY 4.0" in the live status pill and the Simulation panel; keep that when you deploy.
 
 ## 9. Replacing `MockVesselProvider` with a real API
