@@ -2,6 +2,7 @@ import type { Port, Vessel } from '@/types';
 import { PORTS } from '@/data/ports';
 import { ZONES, type MaritimeZone } from '@/data/zones';
 import { CONTAINERS } from '@/data/containers';
+import { containerTrackingStore } from '@/lib/providers/live';
 import { REGIONS, REGION_BOUNDS } from '@/data/regions';
 import { classifyQuery, type ClassifiedQuery } from './classify';
 
@@ -79,12 +80,14 @@ export function search(rawQuery: string, vessels: Vessel[], ports: Port[] = PORT
 
   if (query.kind === 'container') {
     const known = CONTAINERS.some((c) => c.containerNumber === query.value);
+    const tracking = containerTrackingStore.getState();
+    const live = tracking.configured ? tracking.carriers.join(', ') : null;
     results.push({
       type: 'container',
       id: query.value,
       title: query.value,
-      subtitle: known ? 'Demo tracking record available' : 'Container number',
-      detail: known ? 'Demo tracking data' : 'Requires a connected carrier / tracking data source',
+      subtitle: known ? 'Demo tracking record available' : live ? 'Container number' : 'Container number',
+      detail: known ? 'Demo tracking data' : live ? `Look up live at ${live}` : 'Requires a connected carrier / tracking data source',
       known,
       score: 100,
     });

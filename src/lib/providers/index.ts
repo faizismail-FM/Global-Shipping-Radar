@@ -1,8 +1,11 @@
 import { MockContainerProvider, MockPortProvider, MockVesselProvider } from './mock';
+import { LiveContainerProvider } from './live';
 import type { ContainerDataProvider, PortDataProvider, VesselDataProvider } from './types';
 
 export type { ContainerDataProvider, PortDataProvider, VesselDataProvider } from './types';
 export { MockContainerProvider, MockPortProvider, MockVesselProvider } from './mock';
+export { LiveContainerProvider, ContainerLookupError, containerTrackingStore, useContainerTracking } from './live';
+export type { ContainerTrackingState } from './live';
 
 export interface Providers {
   vessels: VesselDataProvider;
@@ -21,7 +24,8 @@ export function getProviders(): Providers {
   if (!providers) {
     providers = {
       vessels: new MockVesselProvider(),
-      containers: new MockContainerProvider(),
+      // Live carrier tracking through the server relay, with the demo records as fallback.
+      containers: new LiveContainerProvider(new MockContainerProvider()),
       ports: new MockPortProvider(),
     };
   }

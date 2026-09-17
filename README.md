@@ -155,6 +155,8 @@ Copy `.env.example` to `.env`. All variables are optional.
 | `PUBLIC_DEFAULT_DATA_SOURCE` | `simulated` | `simulated`, `digitraffic` or `aisstream`: which vessel data source new visitors start with. |
 | `AISSTREAM_API_KEY` | – | **Server-only** (no `PUBLIC_` prefix). Enables the Global AIS relay. Create a free key at aisstream.io and set it in Vercel → Project → Settings → Environment Variables. |
 | `AISSTREAM_WS_URL` | AISStream's endpoint | Server-only override of the WebSocket URL, used with the mock server in tests. |
+| `HLAG_CLIENT_ID` / `HLAG_CLIENT_SECRET` | unset (demo records only) | Server-only. Hapag-Lloyd API Portal application credentials (Track & Trace product). Enables live container tracking through `/api/containers/track`. |
+| `HLAG_API_BASE` | `https://api.hlag.com/hlag/external/v2` | Server-only override of the Hapag-Lloyd API base URL, used with the mock server in tests. |
 
 Reserved for future providers (not read yet): `CONTAINER_TRACKING_API_URL`, `CONTAINER_TRACKING_API_KEY`.
 
@@ -244,17 +246,44 @@ To connect an AIS feed:
 
 Because keys must not be shipped to the browser, front a paid AIS API with a small server (an Astro server endpoint or serverless function) and point the provider at that endpoint.
 
-## 10. Adding a container tracking provider
+## 10. Container tracking: live carrier data
 
-```ts
-interface ContainerDataProvider {
-  readonly name: string;
-  readonly simulated: boolean;
-  searchContainer(containerNumber: string): Promise<Container | null>;
-}
+Container tracking has two layers. The built-in **demo records** (`src/data/containers.ts`) always resolve and are labelled *Demo tracking data*. When carrier credentials are configured on the server, the app first asks the **carrier tracking relay** and shows real events with a green *Live · <carrier>* badge; numbers the carrier does not know fall back to the demo records.
+
+| Piece | Role |
+| --- | --- |
+| `GET /api/containers/track?number=…` (`src/pages/api/containers/track.ts`) | Vercel serverless function. Validates the ISO 6346 number, asks each configured carrier (likeliest owner prefix first) for the container's DCSA Track & Trace events and returns the app's `Container` record. `?probe=1` reports which carriers are configured. Responses are CDN-cached for 2 minutes. |
+| `src/lib/tracking/carriers.ts` | Carrier connectors. Each one knows its host, auth headers and env vars; all speak DCSA T&T v2.2, so adding a carrier is one object. Shipped: **Hapag-Lloyd**. |
+| `src/lib/tracking/dcsa.ts` | Pure mapper from DCSA events (equipment events LOAD/DISC/GTIN/GTOT/STUF/STRP…, transport events ARRI/DEPA, planned/estimated/actual classifiers, transport calls with vessel, voyage and UN/LOCODE) to `Container`: status, POL/POD, vessel and voyage, ETA, route, milestone timeline, B/L and booking references, size/type from the ISO equipment code. |
+| `LiveContainerProvider` (`src/lib/providers/live.ts`) | Browser side. Probes the relay once, calls it for lookups, falls back to `MockContainerProvider`, records the outcome in the feed log and exposes `useContainerTracking()` for UI copy. |
+
+### Connecting Hapag-Lloyd (free)
+
+1. Register at the [Hapag-Lloyd API Portal](https://api-portal.hlag.com/) (self-service).
+2. Create an application and subscribe it to the **Track & Trace** product (DCSA T&T v2.2). The portal issues a *client id* and *client secret*.
+3. Set them on the server: in Vercel → Project → Settings → Environment Variables add `HLAG_CLIENT_ID` and `HLAG_CLIENT_SECRET` (Production and Preview), then redeploy. Locally, put them in `.env`.
+4. Open Container Tracking: the header reads *Live carrier tracking via Hapag-Lloyd*. Enter any container on a Hapag-Lloyd booking (owner prefixes HLCU, HLXU, HLBU, UACU are tried first, but shipper-owned boxes work too).
+
+The relay calls `https://api.hlag.com/hlag/external/v2/events?equipmentReference=<number>` with `x-ibm-client-id` / `x-ibm-client-secret` headers. Override the base with `HLAG_API_BASE` for tests. Hapag-Lloyd labels the API *beta*; where the API and the website disagree, trust the website.
+
+### Adding another carrier
+
+Add a `CarrierConnector` to `CARRIERS` in `src/lib/tracking/carriers.ts` with its `ownerPrefixes`, `configured()` and `fetchEvents()` (Maersk and CMA CGM also expose DCSA-style events from their developer portals). The relay, mapper and UI need no changes. For a non-DCSA source (an aggregator, EDI IFTSTA, your own database) either translate its data into DCSA events server-side or implement `ContainerDataProvider` directly.
+
+### Local testing without credentials
+
+`scripts/mock-hlag.mjs` mimics the Hapag-Lloyd endpoint with two scenarios (in transit after a transshipment; delivered) and an error case:
+
+```bash
+node scripts/mock-hlag.mjs 9124            # prints the two mock container numbers
+HLAG_CLIENT_ID=test-id HLAG_CLIENT_SECRET=test-secret HLAG_API_BASE=http://127.0.0.1:9124/hlag/external/v2 npm run dev
+curl "http://localhost:4321/api/containers/track?probe=1"
+curl "http://localhost:4321/api/containers/track?number=<mock number>"
 ```
 
-Implement it against a carrier API, a container-tracking aggregator, an EDI feed (IFTSTA/IFTMBF events) or your own logistics database, returning the `Container` shape from `src/types/container.ts` (status, vessel/voyage, POL/POD, current location, ETA, route and a milestone list for the timeline). Swap it into `getProviders()`; the global search, container panel and tracking page pick it up unchanged. `src/lib/identifiers.ts` contains ISO 6346 validation (owner code + serial + check digit) you can reuse to validate input before calling a paid API.
+### Seeing what a lookup did
+
+Every lookup is logged like the AIS polls: the **Feed log** in the Simulation panel and the browser console (`[GSR live] Container …`) show carrier, event count and relay timing; the function's own log (`[container relay] …`) is in Vercel → Project → Logs.
 
 ## 11. Production deployment
 
