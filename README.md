@@ -248,7 +248,7 @@ Because keys must not be shipped to the browser, front a paid AIS API with a sma
 
 ## 10. Container tracking: live carrier data
 
-Container tracking has two layers. The built-in **demo records** (`src/data/containers.ts`) always resolve and are labelled *Demo tracking data*. When carrier credentials are configured on the server, the app first asks the **carrier tracking relay** and shows real events with a green *Live · <carrier>* badge; numbers the carrier does not know fall back to the demo records.
+Container tracking has three layers. The built-in **demo records** (`src/data/containers.ts`) always resolve and are labelled *Demo tracking data*. When carrier credentials are configured on the server, the app first asks the **carrier tracking relay** and shows real events with a green *Live · <carrier>* badge; numbers the carrier does not know fall back to the demo records. Independently of both, every number gets a one-click link to its carrier's own tracking page (below).
 
 | Piece | Role |
 | --- | --- |
@@ -256,6 +256,10 @@ Container tracking has two layers. The built-in **demo records** (`src/data/cont
 | `src/lib/tracking/carriers.ts` | Carrier connectors. Each one knows its host, auth headers and env vars; all speak DCSA T&T v2.2, so adding a carrier is one object. Shipped: **Hapag-Lloyd**. |
 | `src/lib/tracking/dcsa.ts` | Pure mapper from DCSA events (equipment events LOAD/DISC/GTIN/GTOT/STUF/STRP…, transport events ARRI/DEPA, planned/estimated/actual classifiers, transport calls with vessel, voyage and UN/LOCODE) to `Container`: status, POL/POD, vessel and voyage, ETA, route, milestone timeline, B/L and booking references, size/type from the ISO equipment code. |
 | `LiveContainerProvider` (`src/lib/providers/live.ts`) | Browser side. Probes the relay once, calls it for lookups, falls back to `MockContainerProvider`, records the outcome in the feed log and exposes `useContainerTracking()` for UI copy. |
+
+### Track on the carrier's website (no credentials)
+
+Every lookup also shows a **Track on the carrier's website** card. `src/lib/tracking/carrierLinks.ts` maps the container's owner prefix (the first four letters, a BIC-registered code) to the carrier and its public tracking page: MSC, Maersk (incl. Hamburg Süd and Sealand), CMA CGM, APL, ANL, Hapag-Lloyd, ONE, Evergreen, COSCO, OOCL, Yang Ming, HMM, ZIM, PIL, Wan Hai, KMTC, SITC and Arkas. Opening the link copies the number to the clipboard, because some carrier pages do not read it from the URL (`deepLink: false` in the table). Prefixes of leasing companies (Triton, Textainer, Florens, CAI, Seaco, Beacon, …) are recognised as such: the card explains that the carrier cannot be inferred and offers a carrier picker plus a link to the BIC register. To add or fix a carrier, edit the table; nothing else changes.
 
 ### Connecting Hapag-Lloyd (free)
 

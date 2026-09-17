@@ -11,6 +11,7 @@ import { CONTAINERS } from '@/data/containers';
 import { Button, DemoTag, KeyValue, LiveTag, Skeleton } from '@/components/ui';
 import { PageShell } from '@/components/dashboard/PageShell';
 import { ContainerTimeline } from './ContainerTimeline';
+import { CarrierLinkCard } from './CarrierLinkCard';
 import { cn } from '@/lib/cn';
 
 type LookupState =
@@ -55,6 +56,7 @@ export function ContainerTrackingPage() {
   }, [initial]);
 
   const found = state.status === 'found' ? state.container : null;
+  const lookedUp = state.status === 'found' ? state.container.containerNumber : state.status === 'not-found' || state.status === 'error' ? state.number : null;
   const vessel = found ? vessels.find((v) => v.name === found.vesselName || (found.vesselImo !== undefined && v.imo === found.vesselImo)) : undefined;
   const badge = found && !found.demo ? <LiveTag label={`Live · ${found.carrier}`} title={`Carrier events from ${found.source?.name ?? found.carrier}`} /> : <DemoTag />;
 
@@ -109,7 +111,7 @@ export function ContainerTrackingPage() {
                   ? `Live tracking is connected for ${carriers}: any container on a ${carriers} booking resolves to real carrier events. Other carriers are not connected yet; the demo records above still work.`
                   : tracking.configured === null
                     ? 'Checking which carriers are connected…'
-                    : 'No carrier is connected on the server, so only the built-in demo records resolve. Live tracking needs carrier credentials (see the README).'}
+                    : 'No carrier API is connected, so only the built-in demo records resolve here. Any other number gets a one-click link to its carrier\u2019s own tracking page, detected from the owner prefix.'}
               </p>
             </div>
           )}
@@ -128,11 +130,11 @@ export function ContainerTrackingPage() {
               <p className="mt-1 text-[12px] text-muted">
                 {tracking.configured ? (
                   <>
-                    {carriers} reported no events for <span className="num">{state.number}</span>, and it is not a demo record. Only containers on {carriers} bookings are covered; other carriers are not connected yet.
+                    {carriers} reported no events for <span className="num">{state.number}</span>, and it is not a demo record. Only containers on {carriers} bookings are covered by the API; use the carrier link below for other lines.
                   </>
                 ) : (
                   <>
-                    <span className="num">{state.number}</span> is not part of this demo, and no carrier is connected for live lookups.
+                    <span className="num">{state.number}</span> is not part of this demo. Use the carrier link below to track it on the carrier's own site.
                   </>
                 )}
               </p>
@@ -215,6 +217,14 @@ export function ContainerTrackingPage() {
                 </aside>
               </div>
             </article>
+          )}
+
+          {lookedUp && (
+            <CarrierLinkCard
+              containerNumber={lookedUp}
+              {...(found && found.carrier !== '—' ? { knownCarrier: found.carrier } : {})}
+              className="mt-4"
+            />
           )}
         </div>
       </div>
