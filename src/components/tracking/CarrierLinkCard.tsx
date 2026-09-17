@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ExternalLink, Copy, Check, Building2 } from 'lucide-react';
-import { CARRIER_SITES, bicLookupUrl, carrierSiteById, carrierSiteByName, detectOwner, type CarrierSite } from '@/lib/tracking/carrierLinks';
+import { CARRIER_SITES, bicLookupUrl, carrierSiteById, suggestCarrier, type CarrierSite } from '@/lib/tracking/carrierLinks';
+import { PREFIX_HISTORY } from '@/data/prefixHistory';
 import { Button, Select } from '@/components/ui';
 import { cn } from '@/lib/cn';
 
@@ -11,10 +12,9 @@ import { cn } from '@/lib/cn';
  * reads it from the URL. Works for every line, no credentials needed.
  */
 export function CarrierLinkCard({ containerNumber, knownCarrier, compact = false, className }: { containerNumber: string; knownCarrier?: string; compact?: boolean; className?: string }) {
-  const detected = detectOwner(containerNumber);
-  const fromRecord = knownCarrier ? carrierSiteByName(knownCarrier) : undefined;
-  const initial = fromRecord ?? (detected.kind === 'carrier' ? detected.site : undefined);
-  const [choice, setChoice] = useState<string>(initial?.id ?? '');
+  const suggestion = suggestCarrier(containerNumber, PREFIX_HISTORY, knownCarrier);
+  const { owner: detected, alternatives } = suggestion;
+  const [choice, setChoice] = useState<string>(suggestion.site?.id ?? '');
   const [copied, setCopied] = useState(false);
   const site: CarrierSite | undefined = carrierSiteById(choice);
 
@@ -30,14 +30,24 @@ export function CarrierLinkCard({ containerNumber, knownCarrier, compact = false
     window.open(site.trackUrl(containerNumber), '_blank', 'noopener,noreferrer');
   };
 
+  const pct = (v: number) => `${Math.round(v * 100)}%`;
+  const ownerText =
+    detected.kind === 'carrier'
+      ? `Owner code ${detected.prefix} belongs to ${detected.site.name}.`
+      : detected.kind === 'lessor'
+        ? `Owner code ${detected.prefix} belongs to ${detected.lessor}, a container leasing company, so the carrier cannot be read from the number.`
+        : `Owner code ${detected.prefix} is not in the carrier list.`;
+  const historyText =
+    suggestion.basis === 'history' || suggestion.basis === 'owner+history'
+      ? ` In FM's bookings, ${detected.prefix} boxes ${suggestion.basis === 'owner+history' ? 'mostly sailed' : 'most often sailed'} with ${suggestion.site?.name} (${pct(suggestion.share ?? 0)} of ${suggestion.samples})${alternatives.length ? `, then ${alternatives.slice(0, 2).map((a) => `${a.site.name} ${pct(a.share)}`).join(', ')}` : ''}. Confirm against the booking.`
+      : '';
   const explanation =
-    fromRecord && detected.kind !== 'carrier'
-      ? `Carrier from the tracking record: ${fromRecord.name}.`
-      : detected.kind === 'carrier'
-        ? `Owner code ${detected.prefix} belongs to ${detected.site.name}.`
-        : detected.kind === 'lessor'
-          ? `Owner code ${detected.prefix} belongs to ${detected.lessor}, a container leasing company, so the carrier cannot be read from the number. Pick the carrier from the booking or bill of lading.`
-          : `Owner code ${detected.prefix} is not in the carrier list. Pick the carrier from the booking, or look the code up in the BIC register.`;
+    suggestion.basis === 'record'
+      ? `Carrier from the tracking record: ${suggestion.site?.name}.`
+      : suggestion.basis === 'none'
+        ? `${ownerText} Pick the carrier from the booking or bill of lading.`
+        : `${ownerText}${historyText}`;
+  const showBic = detected.kind !== 'carrier' && suggestion.basis !== 'record';
 
   return (
     <div className={cn('rounded-lg border hairline', compact ? 'p-3' : 'p-4', className)} aria-label="Track on carrier website">
@@ -49,7 +59,7 @@ export function CarrierLinkCard({ containerNumber, knownCarrier, compact = false
           <div className={cn('font-medium text-ink', compact ? 'text-[13px]' : 'text-[14px]')}>Track on the carrier's website</div>
           <p className={cn('mt-0.5 leading-relaxed text-muted', compact ? 'text-[11px]' : 'text-[12px]')}>
             {explanation}
-            {detected.kind !== 'carrier' && !fromRecord && (
+            {showBic && (
               <>
                 {' '}
                 <a href={bicLookupUrl(detected.prefix)} target="_blank" rel="noreferrer" className="text-accent hover:underline">
@@ -81,6 +91,16 @@ export function CarrierLinkCard({ containerNumber, knownCarrier, compact = false
           {copied ? 'Number copied' : 'Copy number'}
         </button>
       </div>
+      {alternatives.length > 0 && suggestion.basis !== 'record' && (
+        <div className={cn('mt-2 flex flex-wrap items-center gap-1.5 text-faint', compact ? 'text-[10px]' : 'text-[11px]')}>
+          <span>Also used:</span>
+          {alternatives.slice(0, 3).map((a) => (
+            <button key={a.site.id} type="button" onClick={() => setChoice(a.site.id)} className={cn('rounded border hairline px-1.5 py-0.5 text-muted hover:border-accent hover:text-accent', choice === a.site.id && 'border-accent text-accent')}>
+              {a.site.name} · {pct(a.share)}
+            </button>
+          ))}
+        </div>
+      )}
       {site && !site.deepLink && (
         <p className={cn('mt-2 text-faint', compact ? 'text-[10px]' : 'text-[11px]')}>{site.name}'s page does not accept the number in the link. It is copied to your clipboard when you open the page; paste it into the tracking box.</p>
       )}

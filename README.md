@@ -259,7 +259,15 @@ Container tracking has three layers. The built-in **demo records** (`src/data/co
 
 ### Track on the carrier's website (no credentials)
 
-Every lookup also shows a **Track on the carrier's website** card. `src/lib/tracking/carrierLinks.ts` maps the container's owner prefix (the first four letters, a BIC-registered code) to the carrier and its public tracking page: MSC, Maersk (incl. Hamburg Süd and Sealand), CMA CGM, APL, ANL, Hapag-Lloyd, ONE, Evergreen, COSCO, OOCL, Yang Ming, HMM, ZIM, PIL, Wan Hai, KMTC, SITC and Arkas. Opening the link copies the number to the clipboard, because some carrier pages do not read it from the URL (`deepLink: false` in the table). Prefixes of leasing companies (Triton, Textainer, Florens, CAI, Seaco, Beacon, …) are recognised as such: the card explains that the carrier cannot be inferred and offers a carrier picker plus a link to the BIC register. To add or fix a carrier, edit the table; nothing else changes.
+Every lookup also shows a **Track on the carrier's website** card. `src/lib/tracking/carrierLinks.ts` maps the container's owner prefix (the first four letters, a BIC-registered code) to the carrier and its public tracking page: MSC, Maersk (incl. Hamburg Süd and Sealand), CMA CGM, APL, ANL, Hapag-Lloyd, ONE, Evergreen, COSCO, OOCL, Yang Ming, HMM, ZIM, PIL, Wan Hai, and the intra-Asia lines FM uses most: Interasia, RCL, KMTC, Sinokor / Heung-A, SITC, TS Lines, Transworld, MTT Shipping, Econship, Goodrich, Unifeeder, Emirates, Swire and Arkas. Opening the link copies the number to the clipboard, because some carrier pages do not read it from the URL (`deepLink: false` in the table). Prefixes of leasing companies (Triton, Textainer, Florens, CAI, Seaco, Beacon, …) are recognised as such: the card explains that the carrier cannot be inferred and offers a carrier picker plus a link to the BIC register. To add or fix a carrier, edit the table; nothing else changes.
+
+**Pre-selecting the carrier from FM's own history.** Leased boxes cannot be attributed from the prefix, but FM's bookings show which line each prefix usually sails with. `src/data/prefixHistory.ts` holds, per owner prefix, the top carriers and their share of FM's past containers (counts only, no shipment data). `suggestCarrier()` uses it: a carrier-owned prefix is pre-selected as is, unless the history shows the boxes mostly travel with another line of the same group (COSCO-owned boxes on OOCL bookings); leased and unknown prefixes get the historically likeliest carrier, with the share shown and the runners-up offered as one-click alternatives. Regenerate the table from a newer consol export (CSV with `Carrier` and `Container No(s)` columns):
+
+```bash
+node scripts/build-prefix-history.mjs consol_list.csv
+```
+
+The script maps agent names to carriers with the `RULES` list at its top; extend it when FM starts using a new line.
 
 ### Connecting Hapag-Lloyd (free)
 
