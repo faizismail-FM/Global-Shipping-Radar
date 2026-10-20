@@ -27,7 +27,7 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
               { value: 'dark', label: <span className="inline-flex items-center gap-1.5"><Moon size={12} /> Dark</span> },
               { value: 'light', label: <span className="inline-flex items-center gap-1.5"><Sun size={12} /> Light</span> },
             ]}
-            onChange={(theme) => updateSettings({ theme })}
+            onChange={(theme) => updateSettings({ theme, themeChosen: true })}
             label="Theme"
           />
         </section>

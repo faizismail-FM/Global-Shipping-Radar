@@ -6,6 +6,8 @@ export type DataSource = 'simulated' | 'digitraffic' | 'aisstream';
 
 export interface Settings {
   theme: Theme;
+  /** True once the user has picked a theme themselves; until then the app's default applies. */
+  themeChosen: boolean;
   showRoutes: boolean;
   showPorts: boolean;
   showVesselLabels: boolean;

@@ -6,7 +6,8 @@ const STORAGE_KEY = 'gsr:settings:v1';
 const DEFAULT_INTERVAL = Number(import.meta.env.PUBLIC_SIM_INTERVAL_MS ?? 2000);
 
 export const DEFAULT_SETTINGS: Settings = {
-  theme: 'dark',
+  theme: 'light',
+  themeChosen: false,
   showRoutes: true,
   showPorts: true,
   showVesselLabels: true,
@@ -24,7 +25,10 @@ function load(): Settings {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return DEFAULT_SETTINGS;
     const parsed = JSON.parse(raw) as Partial<Settings>;
-    return { ...DEFAULT_SETTINGS, ...parsed };
+    const merged = { ...DEFAULT_SETTINGS, ...parsed };
+    // Only an explicit choice overrides the default theme; earlier builds persisted the old default.
+    if (!parsed.themeChosen) merged.theme = DEFAULT_SETTINGS.theme;
+    return merged;
   } catch {
     return DEFAULT_SETTINGS;
   }
@@ -40,10 +44,13 @@ function persist(state: Settings) {
   }
 }
 
+const THEME_COLOR: Record<Theme, string> = { dark: '#081320', light: '#e6edf4' };
+
 function applyTheme(theme: Theme) {
   if (typeof document === 'undefined') return;
   document.documentElement.dataset.theme = theme;
   document.documentElement.style.colorScheme = theme;
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', THEME_COLOR[theme]);
 }
 
 settingsStore.subscribe(() => {

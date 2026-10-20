@@ -38,7 +38,7 @@ The application is a single-page maritime operations console built around a MapL
 | **Alerts** | High congestion, vessel delay and high traffic alerts derived from the simulation; clicking one moves the map to the location. |
 | **Container Tracking** | Dedicated tracking page with a milestone timeline for 24 demo ISO 6346 container numbers (valid check digits). |
 | **Voyage Search** | Find vessels sailing between a port pair (scheduled calls or lane transits), by operator or voyage number. |
-| **Simulation & Settings** | Pause/resume/step the simulation, change update frequency and time acceleration, switch dark/light theme, map layers, speed and distance units. Preferences persist in `localStorage`. |
+| **Simulation & Settings** | Pause/resume/step the simulation, change update frequency and time acceleration, switch light/dark theme (light is the default), map layers, speed and distance units. Preferences persist in `localStorage`. |
 
 Desktop is the primary target; tablet and phone layouts collapse the sidebar into a bottom navigation bar, show detail panels as bottom sheets and use drawers for filters.
 
