@@ -13,12 +13,12 @@ const {
 ---
 
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="light">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="description" content={description} />
-    <meta name="theme-color" content="#070d17" />
+    <meta name="theme-color" content="#e6edf4" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -28,13 +28,17 @@ const {
     />
     <title>{title}</title>
     <script is:inline>
-      // Apply the persisted theme before first paint to avoid a flash.
+      // Apply the user's chosen theme before first paint to avoid a flash. The default is light;
+      // a persisted theme only counts once the user picked it themselves (themeChosen).
       try {
         var raw = localStorage.getItem('gsr:settings:v1');
-        var theme = raw ? JSON.parse(raw).theme : null;
+        var saved = raw ? JSON.parse(raw) : null;
+        var theme = saved && saved.themeChosen ? saved.theme : null;
         if (theme === 'light' || theme === 'dark') {
           document.documentElement.dataset.theme = theme;
           document.documentElement.style.colorScheme = theme;
+          var meta = document.querySelector('meta[name="theme-color"]');
+          if (meta) meta.setAttribute('content', theme === 'dark' ? '#081320' : '#e6edf4');
         }
       } catch (e) {}
     </script>
